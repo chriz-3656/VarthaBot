@@ -17,8 +17,19 @@ function createApiRouter(context) {
     if (Object.prototype.hasOwnProperty.call(next, 'fetchIntervalSeconds')) {
       next.fetchIntervalSeconds = Number(next.fetchIntervalSeconds);
     }
+    if (Object.prototype.hasOwnProperty.call(next, 'maxArticlesPerFeed')) {
+      next.maxArticlesPerFeed = Number(next.maxArticlesPerFeed);
+    }
+    if (Object.prototype.hasOwnProperty.call(next, 'feedFetchDelayMs')) {
+      next.feedFetchDelayMs = Number(next.feedFetchDelayMs);
+    }
     if (Object.prototype.hasOwnProperty.call(next, 'descriptionLength')) {
       next.descriptionLength = Number(next.descriptionLength);
+    }
+    if (Object.prototype.hasOwnProperty.call(next, 'sourcePriority')) {
+      if (!next.sourcePriority || typeof next.sourcePriority !== 'object') {
+        delete next.sourcePriority;
+      }
     }
     return next;
   }
@@ -44,6 +55,16 @@ function createApiRouter(context) {
       res.json({ ok: true, result });
     } catch (error) {
       logger.error('Send latest failed', { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
+  router.post('/delivery/start', async (_req, res) => {
+    try {
+      const result = await context.startDelivery();
+      res.json({ ok: true, result });
+    } catch (error) {
+      logger.error('Failed to start delivery', { error: error.message });
       res.status(500).json({ ok: false, error: error.message });
     }
   });
@@ -133,10 +154,12 @@ function createApiRouter(context) {
 
   router.get('/status', (_req, res) => {
     const botClient = context.getClient();
+    const settings = getSettings();
     res.json({
       botOnline: Boolean(botClient?.isReady?.()),
       startedAt: context.startedAt,
-      lastFetchAt: context.getLastRunAt ? context.getLastRunAt() : 0
+      lastFetchAt: context.getLastRunAt ? context.getLastRunAt() : 0,
+      deliveryEnabled: settings.deliveryEnabled !== false
     });
   });
 

@@ -23,16 +23,25 @@ async function runFetchCycle(context, opts = {}) {
     };
   }
 
-  const fetched = await fetchFromEnabledFeeds(feeds);
-  const prioritized = sortByPriority(fetched);
+  const fetched = await fetchFromEnabledFeeds(feeds, {
+    maxArticlesPerFeed: settings.maxArticlesPerFeed,
+    feedFetchDelayMs: settings.feedFetchDelayMs
+  });
+  const prioritized = sortByPriority(fetched, settings);
   saveNewsCache(prioritized);
 
   const filtered = prioritized.filter((item) => isAllowed(item, settings));
-  const fresh = filtered.filter((item) => !dedupService.has(item));
+  const fresh = filtered.filter((item) => {
+    const duplicate = dedupService.has(item);
+    if (duplicate) {
+      logger.debug('Duplicate skipped', { title: item.title, source: item.source });
+    }
+    return !duplicate;
+  });
 
   const max = Number(settings.maxNewsPerCycle || 5);
   const batch = fresh.slice(0, Math.max(1, max));
-  const shouldDispatch = opts.dispatchToDiscord !== false;
+  const shouldDispatch = opts.dispatchToDiscord !== false && settings.deliveryEnabled !== false;
   let sentCount = 0;
 
   if (batch.length > 0 && shouldDispatch) {
@@ -44,10 +53,18 @@ async function runFetchCycle(context, opts = {}) {
     sentCount = batch.length;
   }
 
+  if (batch.length > 0 && !shouldDispatch) {
+    logger.info('Delivery disabled: fetched items are cached but not sent', {
+      reason,
+      batch: batch.length
+    });
+  }
+
   logger.info('Fetch cycle completed', {
     reason,
     fetched: fetched.length,
     filtered: filtered.length,
+    duplicatesSkipped: filtered.length - fresh.length,
     fresh: fresh.length,
     sent: sentCount
   });

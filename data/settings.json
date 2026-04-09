@@ -2,6 +2,9 @@
   "postMode": "hybrid",
   "fetchIntervalSeconds": 1800,
   "maxNewsPerCycle": 5,
+  "maxArticlesPerFeed": 15,
+  "feedFetchDelayMs": 500,
+  "deliveryEnabled": true,
   "discordChannelId": "1372956632257925142",
   "includeKeywords": "",
   "excludeKeywords": "",
@@ -15,6 +18,12 @@
   "enableButtons": true,
   "footerBrandingText": "Powered by വാർത്ത ബോട്ട്",
   "fallbackImageUrl": "https://images.news18.com/dlxczavtqcctuei/news18/static/images/news18malayalam-logo-1200x675.png?im=FitAndFill,width=1200,height=675",
+  "sourcePriority": {
+    "onmanorama": 1,
+    "mathrubhumi": 2,
+    "news18": 3,
+    "asianet": 4
+  },
   "retryBotAfterFallback": false,
   "retryBotDelayMs": 3000
 }

@@ -42,7 +42,7 @@ async function sendNewsWithFailover(item, context) {
 
   try {
     await sendViaBot(item, client, channelId, settings);
-    logger.info('Message sent via bot', { title: item.title, source: item.source });
+    logger.debug('Message sent via bot', { title: item.title, source: item.source });
     return 'bot';
   } catch (botError) {
     logger.warn('Bot failed, attempting webhook fallback', {
@@ -60,7 +60,7 @@ async function sendNewsWithFailover(item, context) {
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         try {
           await sendViaBot(item, client, channelId, settings);
-          logger.info('Retry via bot succeeded after webhook fallback', { title: item.title, source: item.source });
+          logger.debug('Retry via bot succeeded after webhook fallback', { title: item.title, source: item.source });
         } catch (retryError) {
           logger.warn('Retry via bot failed after webhook fallback', {
             title: item.title,
@@ -98,13 +98,13 @@ async function dispatchNewsItem(item, context) {
       return 'skipped';
     }
     await sendViaBot(item, client, channelId, settings);
-    logger.info('Message sent via bot', { title: item.title, source: item.source });
+    logger.debug('Message sent via bot', { title: item.title, source: item.source });
     return 'bot';
   }
 
   if (mode === 'webhook') {
     await sendViaWebhook(item, settings);
-    logger.info('Message sent via webhook', { title: item.title, source: item.source });
+    logger.debug('Message sent via webhook', { title: item.title, source: item.source });
     return 'webhook';
   }
 
@@ -123,7 +123,7 @@ async function processQueue(context) {
     while (queue.length > 0) {
       const item = queue.shift();
       const method = await dispatchNewsItem(item, context);
-      logger.info('News delivery completed', { title: item.title, source: item.source, method });
+      logger.info('News delivery completed', { method });
       const delay = Number(context.settings.rateLimitMs || 1200);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }

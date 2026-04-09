@@ -7,7 +7,7 @@ const { initBot, getClient } = require('./bot');
 const { createApiRouter } = require('./routes/api');
 const { runFetchCycle } = require('./services/newsPipeline');
 const { getNewsCache } = require('./services/rssService');
-const { getSettings } = require('./services/runtimeService');
+const { getSettings, setSettings } = require('./services/runtimeService');
 const { enqueueNews } = require('./services/discordService');
 
 ensureDataFiles();
@@ -49,6 +49,10 @@ async function guardedFetch(reason, force = false, dispatchToDiscord = true) {
 
 async function sendLatestNews(count = 1) {
   const settings = getSettings();
+  if (settings.deliveryEnabled === false) {
+    return { sent: 0, reason: 'delivery_disabled' };
+  }
+
   const latest = getNewsCache().slice(0, Math.max(1, count));
 
   if (latest.length === 0) {
@@ -66,11 +70,25 @@ async function sendLatestNews(count = 1) {
   };
 }
 
+async function startDelivery() {
+  const current = getSettings();
+  if (current.deliveryEnabled !== true) {
+    setSettings({
+      ...current,
+      deliveryEnabled: true
+    });
+    logger.info('News delivery enabled from dashboard');
+  }
+
+  return { deliveryEnabled: true };
+}
+
 app.use(
   '/api',
   createApiRouter({
     manualFetch: (reason) => guardedFetch(reason || 'manual', true, true),
     sendLatest: (count) => sendLatestNews(count),
+    startDelivery: () => startDelivery(),
     getClient,
     startedAt: state.startedAt,
     getLastRunAt: () => state.lastRunAt
@@ -88,6 +106,10 @@ app.listen(env.PORT, () => {
 
 cron.schedule('* * * * *', async () => {
   const settings = getSettings();
+  if (settings.deliveryEnabled === false) {
+    return;
+  }
+
   const intervalMs = Math.max(60, Number(settings.fetchIntervalSeconds || 1800)) * 1000;
   const now = Date.now();
 
@@ -115,7 +137,5 @@ initBot({
 });
 
 setTimeout(() => {
-  guardedFetch('startup').catch((error) => {
-    logger.error('Startup fetch failed', { error: error.message });
-  });
+  logger.info('Startup complete. Waiting for dashboard confirmation to enable delivery.');
 }, 4000);

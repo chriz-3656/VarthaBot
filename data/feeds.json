@@ -10,5 +10,53 @@
     "name": "Onmanorama",
     "url": "https://www.onmanorama.com/kerala.feeds.onmrss.xml",
     "enabled": true
+  },
+  {
+    "id": "mathrubhumi-news",
+    "name": "Mathrubhumi",
+    "url": "https://www.mathrubhumi.com/rss/news",
+    "enabled": true
+  },
+  {
+    "id": "asianetnews",
+    "name": "Asianet News",
+    "url": "https://www.asianetnews.com/rss",
+    "enabled": true
+  },
+  {
+    "id": "oneindia-malayalam",
+    "name": "OneIndia Malayalam",
+    "url": "https://malayalam.oneindia.com/rss/malayalam-news-fb.xml",
+    "enabled": true
+  },
+  {
+    "id": "filmibeat-malayalam",
+    "name": "Filmibeat Malayalam",
+    "url": "https://malayalam.filmibeat.com/rss/feeds/malayalam-filmibeat-latest-news-fb.xml",
+    "enabled": true
+  },
+  {
+    "id": "mykhel-malayalam",
+    "name": "MyKhel Malayalam",
+    "url": "https://malayalam.mykhel.com/rss/feeds/malayalam-sports-fb.xml",
+    "enabled": true
+  },
+  {
+    "id": "ndtv-top-stories",
+    "name": "NDTV Top Stories",
+    "url": "https://feeds.feedburner.com/ndtvnews-top-stories",
+    "enabled": true
+  },
+  {
+    "id": "the-hindu-national",
+    "name": "The Hindu National",
+    "url": "https://www.thehindu.com/news/national/feeder/default.rss",
+    "enabled": true
+  },
+  {
+    "id": "bbc-world",
+    "name": "BBC World",
+    "url": "http://feeds.bbci.co.uk/news/world/rss.xml",
+    "enabled": true
   }
 ]

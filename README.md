@@ -150,6 +150,8 @@ CLIENT_ID=
 GUILD_ID=
 WEBHOOK_URL=
 PORT=3000
+LOG_LEVEL=info
+LOG_VERBOSE=false
 ```
 
 ## Environment Variables
@@ -159,6 +161,8 @@ PORT=3000
 - `GUILD_ID`: test/development server ID (guild commands)
 - `WEBHOOK_URL`: optional webhook for fallback/webhook mode
 - `PORT`: API/dashboard port (default `3000`)
+- `LOG_LEVEL`: `debug | info | warn | error` (default `info`)
+- `LOG_VERBOSE`: `true/false` to print JSON metadata in terminal (default `false`)
 
 ## Run Commands
 
@@ -272,6 +276,7 @@ http://localhost:3000/dashboard
 
 ### Quick action buttons
 
+- `Start News Delivery`: unlocks scheduler + delivery after startup confirmation
 - `Fetch Now`: fetches feed cycle; if no new items sent, auto-sends latest cached item
 - `Send Latest News`: sends latest cached item directly
 
@@ -287,6 +292,7 @@ Base: `/api`
 - `GET /api/news`
 - `POST /api/fetch`
 - `POST /api/send-latest`
+- `POST /api/delivery/start`
 - `GET /api/feeds`
 - `POST /api/feeds`
 - `PATCH /api/feeds/:id`
@@ -332,6 +338,7 @@ Supports:
 - Actual fetch happens only when interval elapsed
 - Controlled by `settings.fetchIntervalSeconds`
 - Default is `1800` (30 minutes)
+- Scheduler stays idle until delivery is enabled from dashboard (`Start News Delivery`)
 
 ## Data Storage
 
@@ -350,6 +357,12 @@ This design is intentionally migration-friendly to MongoDB.
 - In-memory recent logs + `logs.jsonl` persistence
 - Dashboard log panel with color coding
 - Delivery method and failover events logged explicitly
+- Terminal logging is clean/minimal by default:
+  - no JSON metadata unless `LOG_VERBOSE=true`
+  - feed-attempt and duplicate-level noise moved to `debug`
+- Recommended dev defaults:
+  - `LOG_LEVEL=info`
+  - `LOG_VERBOSE=false`
 
 ## Security Notes
 

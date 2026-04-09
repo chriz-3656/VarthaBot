@@ -4,9 +4,11 @@ const el = {
   lastFetch: document.getElementById('lastFetch'),
   activeFeedsCount: document.getElementById('activeFeedsCount'),
   newsCount: document.getElementById('newsCount'),
+  deliveryStatus: document.getElementById('deliveryStatus'),
   feedList: document.getElementById('feedList'),
   newsList: document.getElementById('newsList'),
   logPanel: document.getElementById('logPanel'),
+  startDeliveryBtn: document.getElementById('startDeliveryBtn'),
   fetchNowBtn: document.getElementById('fetchNowBtn'),
   sendLatestBtn: document.getElementById('sendLatestBtn'),
   themeToggle: document.getElementById('themeToggle'),
@@ -181,6 +183,13 @@ function renderStatus(status, stats = {}) {
   el.lastFetch.textContent = lastFetch;
   el.activeFeedsCount.textContent = String(stats.activeFeeds || 0);
   el.newsCount.textContent = String(stats.newsCount || 0);
+
+  const deliveryEnabled = status.deliveryEnabled !== false;
+  el.deliveryStatus.textContent = deliveryEnabled ? 'Delivery Active' : 'Delivery Locked';
+  el.deliveryStatus.classList.toggle('online', deliveryEnabled);
+  el.deliveryStatus.classList.toggle('offline', !deliveryEnabled);
+  el.startDeliveryBtn.disabled = deliveryEnabled;
+  el.startDeliveryBtn.textContent = deliveryEnabled ? 'Delivery Started' : 'Start News Delivery';
 }
 
 function renderSettings(settings) {
@@ -243,7 +252,9 @@ el.fetchNowBtn.addEventListener('click', async () => {
 
   try {
     const response = await request('/fetch', { method: 'POST' });
-    if (Number(response?.result?.sent || 0) === 0) {
+    if (response?.result?.reason === 'delivery_disabled') {
+      alert('Start News Delivery first from dashboard.');
+    } else if (Number(response?.result?.sent || 0) === 0) {
       await request('/send-latest', {
         method: 'POST',
         body: JSON.stringify({ count: 1 })
@@ -258,15 +269,32 @@ el.fetchNowBtn.addEventListener('click', async () => {
   }
 });
 
+el.startDeliveryBtn.addEventListener('click', async () => {
+  el.startDeliveryBtn.disabled = true;
+  el.startDeliveryBtn.textContent = 'Starting...';
+
+  try {
+    await request('/delivery/start', { method: 'POST' });
+    await refreshAll();
+  } catch (error) {
+    alert(error.message);
+    el.startDeliveryBtn.disabled = false;
+    el.startDeliveryBtn.textContent = 'Start News Delivery';
+  }
+});
+
 el.sendLatestBtn.addEventListener('click', async () => {
   el.sendLatestBtn.disabled = true;
   el.sendLatestBtn.textContent = 'Sending...';
 
   try {
-    await request('/send-latest', {
+    const response = await request('/send-latest', {
       method: 'POST',
       body: JSON.stringify({ count: 1 })
     });
+    if (response?.result?.reason === 'delivery_disabled') {
+      alert('Start News Delivery first from dashboard.');
+    }
     await refreshAll();
   } catch (error) {
     alert(error.message);

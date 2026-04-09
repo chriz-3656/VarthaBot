@@ -1,12 +1,32 @@
 const { readJson, writeJson } = require('./storageService');
+const crypto = require('crypto');
 
 const FILE_NAME = 'seen.json';
-const MAX_ITEMS = 100;
+const MAX_ITEMS = 200;
+
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 function normalizeKey(item) {
-  return String(item.link || item.guid || item.title || '')
-    .trim()
-    .toLowerCase();
+  const title = normalizeText(item.title || '');
+  const link = normalizeText(item.link || item.guid || '');
+  if (!title && !link) {
+    return '';
+  }
+  return `${title}|${link}`;
+}
+
+function createHashFromItem(item) {
+  const key = normalizeKey(item);
+  if (!key) {
+    return '';
+  }
+  return crypto.createHash('sha1').update(key).digest('hex');
 }
 
 function getSeen() {
@@ -14,20 +34,20 @@ function getSeen() {
   if (!Array.isArray(data.items)) {
     return [];
   }
-  return data.items;
+  return data.items.filter((item) => /^[a-f0-9]{40}$/i.test(String(item)));
 }
 
 function has(item) {
-  const key = normalizeKey(item);
-  if (!key) {
+  const hash = createHashFromItem(item);
+  if (!hash) {
     return false;
   }
-  return getSeen().includes(key);
+  return getSeen().includes(hash);
 }
 
 function addMany(items) {
   const current = getSeen();
-  const additions = items.map(normalizeKey).filter(Boolean);
+  const additions = items.map(createHashFromItem).filter(Boolean);
 
   const merged = [...additions, ...current];
   const deduped = [...new Set(merged)].slice(0, MAX_ITEMS);
@@ -38,5 +58,6 @@ function addMany(items) {
 module.exports = {
   has,
   addMany,
-  normalizeKey
+  normalizeKey,
+  createHashFromItem
 };

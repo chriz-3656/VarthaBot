@@ -17,9 +17,20 @@ const parser = new Parser({
   }
 });
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function sanitizeSummary(value) {
   return String(value || '')
     .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFKC')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -71,7 +82,7 @@ function extractImageUrl(item) {
 function normalizeItem(item, sourceName) {
   return {
     id: String(item.id || item.guid || item.link || item.title || `${sourceName}-${Date.now()}`),
-    title: String(item.title || 'Untitled News').trim(),
+    title: normalizeText(item.title || 'Untitled News'),
     link: String(item.link || '').trim(),
     summary: sanitizeSummary(item.contentSnippet || item.summary || item.content || ''),
     image: extractImageUrl(item),
@@ -80,23 +91,75 @@ function normalizeItem(item, sourceName) {
   };
 }
 
-async function parseFeedWithRetry(feed, attempts = 2) {
+async function fetchFeedContentValidated(feedUrl) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const response = await fetch(feedUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+        Accept: 'application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8'
+      },
+      signal: controller.signal
+    });
+
+    const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+    const text = await response.text();
+    const body = text.toLowerCase();
+
+    const hasXmlContentType = contentType.includes('xml');
+    const hasFeedMarkers = body.includes('<rss') || body.includes('<feed');
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    if (!hasXmlContentType || !hasFeedMarkers) {
+      throw new Error(`Invalid feed response (content-type: ${contentType || 'unknown'})`);
+    }
+
+    return text;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function parseFeedWithRetry(feed, options = {}) {
+  const attempts = Number(options.attempts || 2);
+  const maxArticlesPerFeed = Number(options.maxArticlesPerFeed || 15);
   let lastError;
 
   for (let i = 1; i <= attempts; i += 1) {
+    logger.debug(`Fetching feed: ${feed.url}`, { feed: feed.name, attempt: i, attempts });
+
     try {
-      const parsed = await parser.parseURL(feed.url);
+      const xml = await fetchFeedContentValidated(feed.url);
+      const parsed = await parser.parseString(xml);
       const items = (parsed.items || [])
-        .slice(0, 15)
+        .slice(0, maxArticlesPerFeed)
         .map((item) => normalizeItem(item, feed.name))
         .filter((item) => item.title && item.link);
+
+      if (items.length === 0) {
+        logger.debug('Feed parsed but no usable items', {
+          feed: feed.name,
+          url: feed.url,
+          reason: 'empty_items'
+        });
+      } else {
+        logger.debug('Feed parsed successfully', { feed: feed.name, url: feed.url, count: items.length });
+      }
 
       return items;
     } catch (error) {
       lastError = error;
-      logger.warn(`Feed fetch failed (attempt ${i}/${attempts})`, {
+      logger.debug('Feed attempt failed', {
         feed: feed.name,
         url: feed.url,
+        attempt: i,
+        attempts,
         error: error.message
       });
     }
@@ -105,31 +168,34 @@ async function parseFeedWithRetry(feed, attempts = 2) {
   throw lastError;
 }
 
-async function fetchFromEnabledFeeds(feeds) {
+async function fetchFromEnabledFeeds(feeds, options = {}) {
   const enabled = feeds.filter((feed) => feed.enabled);
-
-  const results = await Promise.all(
-    enabled.map(async (feed) => {
-      try {
-        const items = await parseFeedWithRetry(feed);
-        return { feed, items };
-      } catch (error) {
-        logger.error('Feed failed after retries', {
-          feed: feed.name,
-          url: feed.url,
-          error: error?.message || String(error)
-        });
-        return { feed, items: [] };
-      }
-    })
-  );
+  const maxArticlesPerFeed = Number(options.maxArticlesPerFeed || 15);
+  const feedFetchDelayMs = Number(options.feedFetchDelayMs || 500);
 
   const allItems = [];
 
-  for (const result of results) {
-    allItems.push(...result.items);
+  for (const feed of enabled) {
+    try {
+      const items = await parseFeedWithRetry(feed, {
+        attempts: 2,
+        maxArticlesPerFeed
+      });
+      allItems.push(...items);
+    } catch (error) {
+      logger.warn('Feed failed after retries', {
+        feed: feed.name,
+        url: feed.url,
+        error: error?.message || String(error)
+      });
+    }
+
+    if (feedFetchDelayMs > 0) {
+      await delay(feedFetchDelayMs);
+    }
   }
 
+  logger.info(`Articles fetched: ${allItems.length}`);
   allItems.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
   return allItems;
 }

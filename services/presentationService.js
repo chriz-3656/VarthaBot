@@ -29,7 +29,10 @@ function normalizeSettings(settings = {}) {
     enableButtons: settings.enableButtons !== false,
     footerBrandingText: settings.footerBrandingText || 'Powered by വാർത്ത ബോട്ട്',
     fallbackImageUrl: settings.fallbackImageUrl || '',
-    sourceTitleSuffix: settings.sourceTitleSuffix || 'Kerala News'
+    sourceTitleSuffix: settings.sourceTitleSuffix || 'Kerala News',
+    sourcePriority: settings.sourcePriority && typeof settings.sourcePriority === 'object'
+      ? settings.sourcePriority
+      : {}
   };
 }
 
@@ -158,7 +161,23 @@ function buildDiscordMessage(item, settings, options = {}) {
   };
 }
 
-function sortByPriority(items) {
+function sortByPriority(items, rawSettings = {}) {
+  const settings = normalizeSettings(rawSettings);
+  const sourcePriority = settings.sourcePriority && typeof settings.sourcePriority === 'object'
+    ? settings.sourcePriority
+    : {};
+
+  function sourceScore(item) {
+    const source = String(item.source || '').toLowerCase();
+    for (const [key, value] of Object.entries(sourcePriority)) {
+      if (source.includes(String(key).toLowerCase())) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? Math.max(0, 100 - numeric) : 0;
+      }
+    }
+    return 0;
+  }
+
   function score(item) {
     const category = deriveCategory(item);
     const title = String(item.title || '').toLowerCase();
@@ -169,6 +188,7 @@ function sortByPriority(items) {
     if (title.includes('breaking') || title.includes('ബ്രേക്കിംഗ്')) {
       s += 500;
     }
+    s += sourceScore(item);
     s += Math.floor(new Date(item.pubDate || Date.now()).getTime() / 1000);
     return s;
   }
