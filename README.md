@@ -51,6 +51,7 @@ Key goals:
 - Slash commands:
   - `/news`
   - `/info` (works in DM)
+  - `/clear` (works in DM + guild)
   - `/reload` (guild admin)
 - Dashboard controls for:
   - feed management
@@ -202,8 +203,8 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=27
 
 ### Command scope behavior
 
-- Global commands (DM-enabled): `/info`, `/news`
-- Guild commands (server): `/info`, `/news`, `/reload`
+- Global commands (DM-enabled): `/info`, `/news`, `/clear`
+- Guild commands (server): `/info`, `/news`, `/clear`, `/reload`
 
 Note: Global command propagation can take a few minutes.
 
@@ -277,6 +278,7 @@ http://localhost:3000/dashboard
 ### Quick action buttons
 
 - `Start News Delivery`: unlocks scheduler + delivery after startup confirmation
+- `Stop News Delivery`: pauses scheduler-triggered fetch/send and locks delivery
 - `Fetch Now`: fetches feed cycle; if no new items sent, auto-sends latest cached item
 - `Send Latest News`: sends latest cached item directly
 
@@ -293,6 +295,7 @@ Base: `/api`
 - `POST /api/fetch`
 - `POST /api/send-latest`
 - `POST /api/delivery/start`
+- `POST /api/delivery/stop`
 - `GET /api/feeds`
 - `POST /api/feeds`
 - `PATCH /api/feeds/:id`
@@ -398,6 +401,10 @@ Expected: `/reload` is guild-only and admin-only by design.
 
 ### 7) Slash command not visible in DM immediately
 Global command propagation can take a few minutes.
+
+### 8) `/clear` fails in guild
+Cause: missing `Manage Messages` permission.
+Fix: grant `Manage Messages` to your role or run as admin.
 
 ## Development Notes
 

@@ -83,12 +83,26 @@ async function startDelivery() {
   return { deliveryEnabled: true };
 }
 
+async function stopDelivery() {
+  const current = getSettings();
+  if (current.deliveryEnabled !== false) {
+    setSettings({
+      ...current,
+      deliveryEnabled: false
+    });
+    logger.info('News delivery disabled from dashboard');
+  }
+
+  return { deliveryEnabled: false };
+}
+
 app.use(
   '/api',
   createApiRouter({
     manualFetch: (reason) => guardedFetch(reason || 'manual', true, true),
     sendLatest: (count) => sendLatestNews(count),
     startDelivery: () => startDelivery(),
+    stopDelivery: () => stopDelivery(),
     getClient,
     startedAt: state.startedAt,
     getLastRunAt: () => state.lastRunAt
@@ -127,6 +141,8 @@ initBot({
   onNewsRequest: async () => {
     return guardedFetch('slash-news', true, false);
   },
+  onDeliveryStart: async () => startDelivery(),
+  onDeliveryStop: async () => stopDelivery(),
   getRuntimeInfo: () => ({
     startedAt: state.startedAt,
     lastFetchAt: state.lastRunAt,

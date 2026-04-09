@@ -9,6 +9,7 @@ const el = {
   newsList: document.getElementById('newsList'),
   logPanel: document.getElementById('logPanel'),
   startDeliveryBtn: document.getElementById('startDeliveryBtn'),
+  stopDeliveryBtn: document.getElementById('stopDeliveryBtn'),
   fetchNowBtn: document.getElementById('fetchNowBtn'),
   sendLatestBtn: document.getElementById('sendLatestBtn'),
   themeToggle: document.getElementById('themeToggle'),
@@ -189,7 +190,9 @@ function renderStatus(status, stats = {}) {
   el.deliveryStatus.classList.toggle('online', deliveryEnabled);
   el.deliveryStatus.classList.toggle('offline', !deliveryEnabled);
   el.startDeliveryBtn.disabled = deliveryEnabled;
+  el.stopDeliveryBtn.disabled = !deliveryEnabled;
   el.startDeliveryBtn.textContent = deliveryEnabled ? 'Delivery Started' : 'Start News Delivery';
+  el.stopDeliveryBtn.textContent = deliveryEnabled ? 'Stop News Delivery' : 'Delivery Stopped';
 }
 
 function renderSettings(settings) {
@@ -280,6 +283,20 @@ el.startDeliveryBtn.addEventListener('click', async () => {
     alert(error.message);
     el.startDeliveryBtn.disabled = false;
     el.startDeliveryBtn.textContent = 'Start News Delivery';
+  }
+});
+
+el.stopDeliveryBtn.addEventListener('click', async () => {
+  el.stopDeliveryBtn.disabled = true;
+  el.stopDeliveryBtn.textContent = 'Stopping...';
+
+  try {
+    await request('/delivery/stop', { method: 'POST' });
+    await refreshAll();
+  } catch (error) {
+    alert(error.message);
+    el.stopDeliveryBtn.disabled = false;
+    el.stopDeliveryBtn.textContent = 'Stop News Delivery';
   }
 });
 

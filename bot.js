@@ -22,7 +22,17 @@ const guildCommands = [
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   new SlashCommandBuilder()
     .setName('info')
-    .setDescription('Show bot info and runtime details')
+    .setDescription('Show bot info and runtime details'),
+  new SlashCommandBuilder()
+    .setName('clear')
+    .setDescription('Clear messages in this chat (guild/DM)')
+    .addIntegerOption((option) =>
+      option
+        .setName('count')
+        .setDescription('How many messages to clear')
+        .setMinValue(1)
+        .setMaxValue(100)
+    )
 ].map((c) => c.toJSON());
 
 const globalCommands = [
@@ -31,7 +41,17 @@ const globalCommands = [
     .setDescription('Fetch latest Malayalam news'),
   new SlashCommandBuilder()
     .setName('info')
-    .setDescription('Show bot info and runtime details')
+    .setDescription('Show bot info and runtime details'),
+  new SlashCommandBuilder()
+    .setName('clear')
+    .setDescription('Clear messages in this chat (guild/DM)')
+    .addIntegerOption((option) =>
+      option
+        .setName('count')
+        .setDescription('How many messages to clear')
+        .setMinValue(1)
+        .setMaxValue(100)
+    )
 ].map((c) => c.toJSON());
 
 let client = null;
@@ -169,9 +189,14 @@ async function initBot(options = {}) {
             { name: 'Started At', value: fmt.started, inline: true },
             { name: 'Last Fetch', value: fmt.lastFetch, inline: true },
             { name: 'Post Mode', value: String(settings.postMode || 'hybrid'), inline: true },
+            {
+              name: 'Delivery',
+              value: settings.deliveryEnabled === false ? 'Disabled (Dashboard Locked)' : 'Enabled',
+              inline: true
+            },
             { name: 'Fetch Interval', value: `${Number(settings.fetchIntervalSeconds || 1800)}s`, inline: true },
             { name: 'Cached News', value: String(cached), inline: true },
-            { name: 'Commands', value: '`/info`, `/news`, `/reload`', inline: false }
+            { name: 'Commands', value: '`/info`, `/news`, `/clear`, `/reload`', inline: false }
           ],
           footer: { text: 'Powered by വാർത്ത ബോട്ട്' },
           timestamp: new Date().toISOString()
@@ -181,6 +206,54 @@ async function initBot(options = {}) {
           embeds: [infoEmbed],
           ephemeral: interaction.inGuild()
         });
+      }
+
+      if (interaction.commandName === 'clear') {
+        const requested = interaction.options.getInteger('count') || 10;
+        const count = Math.max(1, Math.min(100, requested));
+
+        if (interaction.inGuild()) {
+          const canManageMessages = interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages);
+          if (!canManageMessages) {
+            await interaction.reply({ content: 'Manage Messages permission required.', ephemeral: true });
+            return;
+          }
+
+          await interaction.deferReply({ ephemeral: true });
+          const channel = interaction.channel;
+
+          if (!channel || !channel.isTextBased() || typeof channel.bulkDelete !== 'function') {
+            await interaction.editReply('This channel does not support bulk delete.');
+            return;
+          }
+
+          const deleted = await channel.bulkDelete(count, true);
+          await interaction.editReply(`Cleared ${deleted.size} message(s) from this channel.`);
+          return;
+        }
+
+        await interaction.deferReply();
+        const channel = interaction.channel;
+        const botId = interaction.client.user?.id;
+        if (!channel || !channel.isTextBased() || !botId) {
+          await interaction.editReply('Unable to clear messages in this DM.');
+          return;
+        }
+
+        const fetched = await channel.messages.fetch({ limit: 100 });
+        const ownMessages = fetched.filter((message) => message.author?.id === botId).first(count);
+        let deletedCount = 0;
+        for (const message of ownMessages) {
+          try {
+            await message.delete();
+            deletedCount += 1;
+          } catch (_error) {
+            // Ignore per-message delete failures in DM.
+          }
+        }
+
+        await interaction.editReply(`Cleared ${deletedCount} bot message(s) in this DM.`);
+        return;
       }
 
       if (interaction.commandName === 'reload') {

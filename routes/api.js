@@ -69,6 +69,16 @@ function createApiRouter(context) {
     }
   });
 
+  router.post('/delivery/stop', async (_req, res) => {
+    try {
+      const result = await context.stopDelivery();
+      res.json({ ok: true, result });
+    } catch (error) {
+      logger.error('Failed to stop delivery', { error: error.message });
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
   router.get('/feeds', (_req, res) => {
     res.json({ items: getFeeds() });
   });
