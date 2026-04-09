@@ -1,0 +1,14 @@
+[
+  {
+    "id": "news18-malayalam",
+    "name": "News18 Malayalam",
+    "url": "https://malayalam.news18.com/commonfeeds/v1/mal/rss/latest.xml",
+    "enabled": true
+  },
+  {
+    "id": "onmanorama",
+    "name": "Onmanorama",
+    "url": "https://www.onmanorama.com/kerala.feeds.onmrss.xml",
+    "enabled": true
+  }
+]

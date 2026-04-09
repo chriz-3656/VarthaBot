@@ -1,0 +1,31 @@
+{
+  "name": "vartha-bot-system",
+  "version": "1.0.0",
+  "description": "Full-stack Malayalam Discord news bot with dashboard control panel",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon --config nodemon.json server.js",
+    "bot": "node bot.js",
+    "register:commands": "node bot.js --register-only"
+  },
+  "keywords": [
+    "discord",
+    "rss",
+    "news-bot",
+    "malayalam",
+    "dashboard"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.20.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-cron": "^3.0.3",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

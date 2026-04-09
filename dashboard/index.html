@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vartha Bot Control Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar card shell-card">
+        <h1>Vartha Bot</h1>
+        <p>Malayalam News Control System</p>
+        <nav>
+          <a href="#status">Status</a>
+          <a href="#controls">Controls</a>
+          <a href="#feeds">RSS Feeds</a>
+          <a href="#news">Latest News</a>
+          <a href="#logs">Live Logs</a>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <section id="status" class="card shell-card status-card">
+          <div class="card-head sticky">
+            <div>
+              <h2>Bot Status</h2>
+              <p class="muted">Live state and quick metrics</p>
+            </div>
+            <div class="status-actions">
+              <button id="themeToggle" type="button" class="theme-toggle">Light Mode</button>
+              <span id="botStatus" class="pill offline">Offline</span>
+            </div>
+          </div>
+          <div class="card-body status-grid">
+            <div class="stat-box">
+              <span class="label">Uptime</span>
+              <strong id="uptime">-</strong>
+            </div>
+            <div class="stat-box">
+              <span class="label">Last Fetch</span>
+              <strong id="lastFetch">-</strong>
+            </div>
+            <div class="stat-box">
+              <span class="label">Active Feeds</span>
+              <strong id="activeFeedsCount">0</strong>
+            </div>
+            <div class="stat-box">
+              <span class="label">Cached News</span>
+              <strong id="newsCount">0</strong>
+            </div>
+          </div>
+        </section>
+
+        <div class="dashboard-grid">
+          <section id="controls" class="card shell-card card-scroll card-controls">
+            <div class="card-head sticky">
+              <h3>Bot Controls</h3>
+            </div>
+            <div class="card-body">
+              <form id="settingsForm" class="settings-grid">
+                <label>
+                  Post Mode
+                  <select id="postMode">
+                    <option value="hybrid">Hybrid</option>
+                    <option value="webhook">Webhook</option>
+                    <option value="bot">Bot</option>
+                  </select>
+                </label>
+                <label>
+                  Channel ID
+                  <input id="discordChannelId" type="text" placeholder="Discord channel id" />
+                </label>
+                <label>
+                  Post Interval (seconds)
+                  <input id="fetchIntervalSeconds" type="number" min="60" max="7200" />
+                </label>
+                <label>
+                  Max News/Cycle
+                  <input id="maxNewsPerCycle" type="number" min="1" max="20" />
+                </label>
+                <label>
+                  Rate Limit (ms)
+                  <input id="rateLimitMs" type="number" min="250" max="10000" />
+                </label>
+                <label>
+                  Description Length
+                  <input id="descriptionLength" type="number" min="80" max="600" />
+                </label>
+                <label>
+                  Include Keywords
+                  <input id="includeKeywords" type="text" placeholder="kerala, economy" />
+                </label>
+                <label>
+                  Exclude Keywords
+                  <input id="excludeKeywords" type="text" placeholder="ads, sports" />
+                </label>
+                <label>
+                  Embed Style
+                  <select id="embedStyle">
+                    <option value="card">Card</option>
+                    <option value="compact">Compact</option>
+                  </select>
+                </label>
+                <label>
+                  Accent Color
+                  <input id="accentColor" type="color" value="#7C3AED" />
+                </label>
+                <label>
+                  Fallback Image URL
+                  <input id="fallbackImageUrl" type="url" placeholder="https://example.com/fallback.jpg" />
+                </label>
+                <label>
+                  Footer Branding Text
+                  <input id="footerBrandingText" type="text" placeholder="Powered by വാർത്ത ബോട്ട്" />
+                </label>
+
+                <label class="switch-field">
+                  <input id="botEnabled" type="checkbox" />
+                  <span class="switch"></span>
+                  <span>Bot Enabled</span>
+                </label>
+                <label class="switch-field">
+                  <input id="enableImages" type="checkbox" />
+                  <span class="switch"></span>
+                  <span>Enable Images</span>
+                </label>
+                <label class="switch-field">
+                  <input id="enableCategoryTags" type="checkbox" />
+                  <span class="switch"></span>
+                  <span>Enable Category Tags</span>
+                </label>
+                <label class="switch-field">
+                  <input id="enableButtons" type="checkbox" />
+                  <span class="switch"></span>
+                  <span>Enable Buttons</span>
+                </label>
+
+                <button type="submit" class="primary">Save Settings</button>
+              </form>
+
+              <div class="action-buttons">
+                <button id="fetchNowBtn" class="primary" type="button">Fetch Now</button>
+                <button id="sendLatestBtn" type="button">Send Latest News</button>
+              </div>
+            </div>
+          </section>
+
+          <section id="feeds" class="card shell-card card-scroll card-feeds">
+            <div class="card-head sticky">
+              <h3>RSS Feeds</h3>
+            </div>
+            <div class="card-body">
+              <div id="feedList" class="feed-list"></div>
+              <form id="addFeedForm" class="inline-form">
+                <input id="feedName" type="text" placeholder="Feed name" required />
+                <input id="feedUrl" type="url" placeholder="https://example.com/rss" required />
+                <button type="submit">Add Feed</button>
+              </form>
+            </div>
+          </section>
+
+          <section id="news" class="card shell-card card-scroll card-news">
+            <div class="card-head sticky">
+              <h3>Latest News</h3>
+            </div>
+            <div class="card-body">
+              <div id="newsList" class="news-list"></div>
+            </div>
+          </section>
+
+          <section id="logs" class="card shell-card card-scroll card-logs">
+            <div class="card-head sticky">
+              <h3>Live Logs</h3>
+            </div>
+            <div class="card-body">
+              <div id="logPanel" class="logs" aria-live="polite"></div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
