@@ -126,24 +126,24 @@ async function initBot(options = {}) {
     try {
       if (interaction.isButton() && interaction.customId === 'refresh_news') {
         const ephemeral = interaction.inGuild();
+        await interaction.deferReply({ ephemeral });
         if (typeof options.onNewsRequest === 'function') {
           const result = await options.onNewsRequest();
           const latest = Array.isArray(result?.latest) ? result.latest : [];
           if (latest.length === 0) {
-            await interaction.reply({ content: 'No fresh news available right now.', ephemeral });
+            await interaction.editReply({ content: 'No fresh news available right now.' });
             return;
           }
 
           const payload = buildNewsPayload(latest.slice(0, 1), true);
-          await interaction.reply({
+          await interaction.editReply({
             content: 'Latest news refreshed:',
-            ...payload,
-            ephemeral
+            ...payload
           });
           return;
         }
 
-        await interaction.reply({ content: 'Refresh action is unavailable.', ephemeral });
+        await interaction.editReply({ content: 'Refresh action is unavailable.' });
         return;
       }
 
@@ -154,6 +154,7 @@ async function initBot(options = {}) {
       if (interaction.commandName === 'news') {
         let items = getNewsCache();
         const ephemeral = interaction.inGuild();
+        await interaction.deferReply({ ephemeral });
 
         if (typeof options.onNewsRequest === 'function') {
           const result = await options.onNewsRequest();
@@ -163,15 +164,14 @@ async function initBot(options = {}) {
         }
 
         if (items.length === 0) {
-          await interaction.reply({
-            content: 'No cached news yet. Use dashboard Fetch Now or wait for scheduler.',
-            ephemeral
+          await interaction.editReply({
+            content: 'No cached news yet. Use dashboard Fetch Now or wait for scheduler.'
           });
           return;
         }
 
         const payload = buildNewsPayload(items, true);
-        await interaction.reply({ ...payload, ephemeral });
+        await interaction.editReply({ ...payload });
       }
 
       if (interaction.commandName === 'info') {
