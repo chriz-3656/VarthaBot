@@ -25,7 +25,19 @@ const defaults = {
     enableCategoryTags: true,
     enableButtons: true,
     footerBrandingText: 'Powered by വാർത്ത ബോട്ട്',
-    fallbackImageUrl: 'https://images.news18.com/dlxczavtqcctuei/news18/static/images/news18malayalam-logo-1200x675.png?im=FitAndFill,width=1200,height=675',
+    fallbackImageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Nuvola_apps_knews.svg/512px-Nuvola_apps_knews.svg.png',
+    sourceFallbackImages: {
+      news18: 'https://www.google.com/s2/favicons?domain=malayalam.news18.com&sz=256',
+      onmanorama: 'https://www.google.com/s2/favicons?domain=onmanorama.com&sz=256',
+      mathrubhumi: 'https://www.google.com/s2/favicons?domain=mathrubhumi.com&sz=256',
+      asianet: 'https://www.google.com/s2/favicons?domain=asianetnews.com&sz=256',
+      oneindia: 'https://www.google.com/s2/favicons?domain=oneindia.com&sz=256',
+      filmibeat: 'https://www.google.com/s2/favicons?domain=filmibeat.com&sz=256',
+      mykhel: 'https://www.google.com/s2/favicons?domain=mykhel.com&sz=256',
+      ndtv: 'https://www.google.com/s2/favicons?domain=ndtv.com&sz=256',
+      hindu: 'https://www.google.com/s2/favicons?domain=thehindu.com&sz=256',
+      bbc: 'https://www.google.com/s2/favicons?domain=bbc.com&sz=256'
+    },
     sourcePriority: {
       onmanorama: 1,
       mathrubhumi: 2,

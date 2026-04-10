@@ -29,6 +29,9 @@ function normalizeSettings(settings = {}) {
     enableButtons: settings.enableButtons !== false,
     footerBrandingText: settings.footerBrandingText || 'Powered by വാർത്ത ബോട്ട്',
     fallbackImageUrl: settings.fallbackImageUrl || '',
+    sourceFallbackImages: settings.sourceFallbackImages && typeof settings.sourceFallbackImages === 'object'
+      ? settings.sourceFallbackImages
+      : {},
     sourceTitleSuffix: settings.sourceTitleSuffix || 'Kerala News',
     sourcePriority: settings.sourcePriority && typeof settings.sourcePriority === 'object'
       ? settings.sourcePriority
@@ -84,6 +87,14 @@ function resolveImage(item, settings) {
 
   if (item.image && /^https?:\/\//i.test(item.image)) {
     return item.image;
+  }
+
+  const source = String(item.source || '').toLowerCase();
+  const sourceFallbacks = settings.sourceFallbackImages || {};
+  for (const [key, url] of Object.entries(sourceFallbacks)) {
+    if (source.includes(String(key).toLowerCase()) && /^https?:\/\//i.test(String(url || ''))) {
+      return String(url);
+    }
   }
 
   if (settings.fallbackImageUrl && /^https?:\/\//i.test(settings.fallbackImageUrl)) {
