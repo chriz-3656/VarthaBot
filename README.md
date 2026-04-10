@@ -1,5 +1,7 @@
 # Vartha Bot System
 
+![Vartha Bot Logo](https://i.ibb.co/XM44rgy/logo.png)
+
 Advanced Malayalam Discord news bot + modular dashboard control panel.
 
 This project fetches RSS news, processes and prioritizes content, and publishes to Discord with a premium embed UI. It includes a web dashboard for feed management, filters, delivery settings, and live monitoring.
@@ -426,12 +428,10 @@ Fix: commands/buttons now defer first and then edit reply (`deferReply` + `editR
 
 - Project: `vartha-bot-system`
 - Maintainer/Developer: `chriz3656`
+- Email: `chrizmonsaji@proton.me`
+- Website: `https://chriz-3656.github.io`
+- GitHub: `https://github.com/chriz-3656/VarthaBot`
 - Language focus: Malayalam + English mixed newsroom delivery
-
-If you want to publish this project, update this section with:
-- full name/org
-- contact email
-- GitHub repository URL
 
 ## Roadmap
 
