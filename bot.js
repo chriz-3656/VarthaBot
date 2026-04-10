@@ -4,7 +4,8 @@ const {
   REST,
   Routes,
   SlashCommandBuilder,
-  PermissionFlagsBits
+  PermissionFlagsBits,
+  ActivityType
 } = require('discord.js');
 const { env } = require('./config');
 const logger = require('./utils/logger');
@@ -23,6 +24,9 @@ const guildCommands = [
   new SlashCommandBuilder()
     .setName('info')
     .setDescription('Show bot info and runtime details'),
+  new SlashCommandBuilder()
+    .setName('commands')
+    .setDescription('Preview all available bot commands'),
   new SlashCommandBuilder()
     .setName('clear')
     .setDescription('Clear messages in this chat (guild/DM)')
@@ -43,6 +47,9 @@ const globalCommands = [
     .setName('info')
     .setDescription('Show bot info and runtime details'),
   new SlashCommandBuilder()
+    .setName('commands')
+    .setDescription('Preview all available bot commands'),
+  new SlashCommandBuilder()
     .setName('clear')
     .setDescription('Clear messages in this chat (guild/DM)')
     .addIntegerOption((option) =>
@@ -55,6 +62,47 @@ const globalCommands = [
 ].map((c) => c.toJSON());
 
 let client = null;
+let presenceTimer = null;
+
+function buildPresenceEntries(options = {}) {
+  const runtime = typeof options.getRuntimeInfo === 'function' ? options.getRuntimeInfo() : {};
+  const settings = runtime?.settings || {};
+  const interval = Number(settings.fetchIntervalSeconds || 1800);
+  const delivery = settings.deliveryEnabled === false ? 'Delivery Locked' : 'Delivery Active';
+
+  return [
+    { name: 'Malayalam News Live', type: ActivityType.Watching },
+    { name: `${delivery}`, type: ActivityType.Playing },
+    { name: `Fetch every ${interval}s`, type: ActivityType.Watching },
+    { name: '/commands • /news • /clear', type: ActivityType.Listening }
+  ];
+}
+
+function startPresenceRotation(options = {}) {
+  if (!client?.user) {
+    return;
+  }
+
+  if (presenceTimer) {
+    clearInterval(presenceTimer);
+    presenceTimer = null;
+  }
+
+  let index = 0;
+  const applyPresence = () => {
+    const activities = buildPresenceEntries(options);
+    const next = activities[index % activities.length];
+    index += 1;
+
+    client.user.setPresence({
+      status: 'online',
+      activities: [next]
+    });
+  };
+
+  applyPresence();
+  presenceTimer = setInterval(applyPresence, 60_000);
+}
 
 async function registerSlashCommands() {
   if (!env.DISCORD_TOKEN || !env.CLIENT_ID) {
@@ -120,6 +168,7 @@ async function initBot(options = {}) {
 
   client.once('clientReady', () => {
     logger.info(`Discord bot online as ${client.user.tag}`);
+    startPresenceRotation(options);
   });
 
   client.on('interactionCreate', async (interaction) => {
@@ -196,7 +245,7 @@ async function initBot(options = {}) {
             },
             { name: 'Fetch Interval', value: `${Number(settings.fetchIntervalSeconds || 1800)}s`, inline: true },
             { name: 'Cached News', value: String(cached), inline: true },
-            { name: 'Commands', value: '`/info`, `/news`, `/clear`, `/reload`', inline: false }
+            { name: 'Commands', value: '`/commands`, `/info`, `/news`, `/clear`, `/reload`', inline: false }
           ],
           footer: { text: 'Powered by വാർത്ത ബോട്ട്' },
           timestamp: new Date().toISOString()
@@ -204,6 +253,28 @@ async function initBot(options = {}) {
 
         await interaction.reply({
           embeds: [infoEmbed],
+          ephemeral: interaction.inGuild()
+        });
+      }
+
+      if (interaction.commandName === 'commands') {
+        const previewEmbed = {
+          color: 0x38bdf8,
+          title: 'വാർത്ത ബോട്ട് • Command Preview',
+          description: 'Available commands and quick usage',
+          fields: [
+            { name: '/commands', value: 'Show this command preview list', inline: false },
+            { name: '/news', value: 'Fetch latest cached/fresh news', inline: false },
+            { name: '/info', value: 'Show bot runtime details', inline: false },
+            { name: '/clear count:<1-100>', value: 'Clear messages (DM: bot messages, Guild: requires Manage Messages)', inline: false },
+            { name: '/reload', value: 'Reload settings/feeds (guild admin only)', inline: false }
+          ],
+          footer: { text: 'Powered by വാർത്ത ബോട്ട്' },
+          timestamp: new Date().toISOString()
+        };
+
+        await interaction.reply({
+          embeds: [previewEmbed],
           ephemeral: interaction.inGuild()
         });
       }
