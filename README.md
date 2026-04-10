@@ -45,6 +45,7 @@ Key goals:
 
 - Auto-fetch RSS feeds on schedule
 - Premium Discord embeds with image support and fallback image
+- Source-specific fallback image system (per news source branding)
 - Category tagging (Breaking, Politics, Kerala, Tech, General)
 - Description sanitization + truncation
 - Relative timestamp formatting in embeds
@@ -63,6 +64,7 @@ Key goals:
   - fallback webhook on error
 - Last-100 duplicate prevention
 - Feed priority sorting (breaking-first bias)
+- Interaction-safe command handling (`deferReply` flow) to avoid Discord timeout errors
 
 ## Architecture
 
@@ -405,6 +407,10 @@ Global command propagation can take a few minutes.
 ### 8) `/clear` fails in guild
 Cause: missing `Manage Messages` permission.
 Fix: grant `Manage Messages` to your role or run as admin.
+
+### 9) `Unknown interaction (10062)` in logs
+Cause: interaction response took too long.
+Fix: commands/buttons now defer first and then edit reply (`deferReply` + `editReply`).
 
 ## Development Notes
 
