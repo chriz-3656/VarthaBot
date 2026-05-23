@@ -181,6 +181,19 @@ async function initBot(options = {}) {
   client.once('clientReady', () => {
     logger.info(`Discord bot online as ${client.user.tag}`);
     startPresenceRotation(options);
+    
+    // Sync all currently joined guilds
+    client.guilds.cache.forEach(g => syncGuildData(g).catch(() => {}));
+  });
+
+  client.on('guildCreate', async (guild) => {
+    logger.info('Bot joined a new guild', { guildId: guild.id, guildName: guild.name });
+    await syncGuildData(guild);
+  });
+
+  client.on('guildDelete', async (guild) => {
+    logger.info('Bot removed from a guild', { guildId: guild.id, guildName: guild.name });
+    // Optional: mark as inactive in Supabase
   });
 
   const isGuildAdmin = (interaction) => {
@@ -199,10 +212,7 @@ async function initBot(options = {}) {
 
     // Auto-sync guild name for the dashboard monitor
     if (interaction.inGuild() && interaction.guild) {
-      const settings = getSettings(guildId);
-      if (settings.guildName !== interaction.guild.name) {
-        setSettings({ ...settings, guildName: interaction.guild.name }, guildId);
-      }
+      await syncGuildData(interaction.guild);
     }
 
     try {
@@ -285,12 +295,12 @@ async function initBot(options = {}) {
           return;
         }
 
-        const payload = buildNewsPayload(items, true, guildId);
+        const payload = await buildNewsPayload(items, true, guildId);
         await interaction.editReply({ ...payload });
       }
 
       if (interaction.commandName === 'info') {
-        const runtime = typeof options.getRuntimeInfo === 'function' ? options.getRuntimeInfo(guildId) : {};
+        const runtime = typeof options.getRuntimeInfo === 'function' ? await options.getRuntimeInfo(guildId) : {};
         const fmt = formatRuntimeInfo(runtime);
         const settings = runtime?.settings || {};
         const cached = getNewsCache().length;
@@ -325,7 +335,7 @@ async function initBot(options = {}) {
       }
 
       if (interaction.commandName === 'commands') {
-        const settings = getSettings(guildId);
+        const settings = await getSettings(guildId);
         const previewEmbed = {
           color: 0x38bdf8,
           title: 'വാർത്ത ബോട്ട് • Command Preview',
@@ -440,6 +450,18 @@ if (require.main === module) {
     });
   } else {
     initBot().catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
+  }
+}
+
+module.exports = {
+  initBot,
+  getClient,
+  registerSlashCommands
+};
+itBot().catch((error) => {
       console.error(error);
       process.exit(1);
     });

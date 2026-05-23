@@ -1,7 +1,10 @@
 const path = require('path');
 const express = require('express');
+const session = require('express-session');
+const passport = require('passport');
+const DiscordStrategy = require('passport-discord').Strategy;
 const cron = require('node-cron');
-const { ensureDataFiles, env } = require('./config');
+const { env } = require('./config');
 const logger = require('./utils/logger');
 const { initBot, getClient } = require('./bot');
 const { createApiRouter } = require('./routes/api');
@@ -9,10 +12,65 @@ const { runFetchCycle } = require('./services/newsPipeline');
 const { getNewsCache } = require('./services/rssService');
 const { getSettings, setSettings, getAllGuildIds } = require('./services/runtimeService');
 const { enqueueNews } = require('./services/discordService');
-
-ensureDataFiles();
+const supabase = require('./services/supabaseClient');
 
 const app = express();
+
+// --- Auth Setup ---
+app.use(session({
+  secret: env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // Set to true in prod with HTTPS
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((obj, done) => done(null, obj));
+
+if (env.DISCORD_CLIENT_SECRET && env.DISCORD_CALLBACK_URL) {
+  passport.use(new DiscordStrategy({
+      clientID: env.CLIENT_ID,
+      clientSecret: env.DISCORD_CLIENT_SECRET,
+      callbackURL: env.DISCORD_CALLBACK_URL,
+      scope: ['identify', 'guilds']
+  }, async (accessToken, refreshToken, profile, done) => {
+      try {
+        if (env.SUPABASE_URL) {
+          await supabase.from('users').upsert({
+            discord_user_id: profile.id,
+            username: profile.username,
+            avatar: profile.avatar,
+            email: profile.email,
+            last_login: new Date().toISOString()
+          }, { onConflict: 'discord_user_id' });
+        }
+        return done(null, profile);
+      } catch (err) {
+        return done(err, null);
+      }
+  }));
+
+  app.get('/auth/discord', passport.authenticate('discord'));
+  app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => {
+      res.redirect('/dashboard/'); // Success
+  });
+  app.get('/auth/logout', (req, res, next) => {
+      req.logout((err) => {
+        if (err) return next(err);
+        res.redirect('/');
+      });
+  });
+}
+
+function checkAuth(req, res, next) {
+  if (req.isAuthenticated()) return next();
+  res.redirect('/auth/discord');
+}
+
+// --- End Auth ---
+
 app.use(express.json());
 
 const state = {
@@ -50,7 +108,7 @@ async function guardedFetch(reason, opts = {}) {
 }
 
 async function sendLatestNews(count = 1, guildId = 'GLOBAL') {
-  const settings = getSettings(guildId);
+  const settings = await getSettings(guildId);
   if (settings.deliveryEnabled === false) {
     return { sent: 0, reason: 'delivery_disabled', guildId };
   }
@@ -74,9 +132,9 @@ async function sendLatestNews(count = 1, guildId = 'GLOBAL') {
 }
 
 async function startDelivery(guildId = 'GLOBAL') {
-  const current = getSettings(guildId);
+  const current = await getSettings(guildId);
   if (current.deliveryEnabled !== true) {
-    setSettings(
+    await setSettings(
       {
         ...current,
         deliveryEnabled: true
@@ -90,9 +148,9 @@ async function startDelivery(guildId = 'GLOBAL') {
 }
 
 async function stopDelivery(guildId = 'GLOBAL') {
-  const current = getSettings(guildId);
+  const current = await getSettings(guildId);
   if (current.deliveryEnabled !== false) {
-    setSettings(
+    await setSettings(
       {
         ...current,
         deliveryEnabled: false
@@ -105,25 +163,46 @@ async function stopDelivery(guildId = 'GLOBAL') {
   return { deliveryEnabled: false, guildId };
 }
 
-app.use(
-  '/api',
-  createApiRouter({
-    manualFetch: (reason, opts) => guardedFetch(reason || 'manual', { ...opts, force: true, dispatchToDiscord: true }),
-    sendLatest: (count, guildId) => sendLatestNews(count, guildId),
-    startDelivery: (guildId) => startDelivery(guildId),
-    stopDelivery: (guildId) => stopDelivery(guildId),
-    getClient,
-    startedAt: state.startedAt,
-    getLastRunAt: (guildId) => state.lastRunAt[guildId || 'GLOBAL'] || 0
-  })
-);
+const apiContext = {
+  manualFetch: (reason, opts) => guardedFetch(reason || 'manual', { ...opts, force: true, dispatchToDiscord: true }),
+  sendLatest: (count, guildId) => sendLatestNews(count, guildId),
+  startDelivery: (guildId) => startDelivery(guildId),
+  stopDelivery: (guildId) => stopDelivery(guildId),
+  getClient,
+  startedAt: state.startedAt,
+  getLastRunAt: (guildId) => state.lastRunAt[guildId || 'GLOBAL'] || 0
+};
 
-app.use('/dashboard', express.static(path.join(__dirname, 'dashboard')));
+app.use(express.static(path.join(__dirname, 'public')));
+
+const requireAuth = env.DISCORD_CLIENT_SECRET ? checkAuth : (req, res, next) => next();
+
+// Secure routes
+app.use('/api', requireAuth, createApiRouter(apiContext));
+app.use('/dashboard', requireAuth, express.static(path.join(__dirname, 'dashboard')));
+
 app.get('/', (_req, res) => {
-  res.redirect('/dashboard');
+  if (!env.DISCORD_CLIENT_SECRET) {
+    res.redirect('/dashboard');
+  } else {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
 });
 
-app.listen(env.PORT, () => {
+app.get('/api/me', requireAuth, (req, res) => {
+  // Provide user info and guilds where they are admin
+  res.json({
+    user: {
+      id: req.user?.id,
+      username: req.user?.username,
+      avatar: req.user?.avatar
+    },
+    // Filter to guilds where user is owner, administrator, or manage server
+    guilds: req.user?.guilds?.filter(g => (g.permissions & 0x8) === 0x8 || (g.permissions & 0x20) === 0x20 || g.owner) || []
+  });
+});
+
+server.listen(env.PORT, () => {
   logger.info(`Dashboard/API server running on http://localhost:${env.PORT}`);
 });
 
@@ -133,16 +212,15 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception thrown:', { error: error.message, stack: error.stack });
-  // In production, you might want to exit and let a process manager (like pm2) restart the app
-  // process.exit(1);
 });
 
 cron.schedule('* * * * *', async () => {
-  const guildIds = ['GLOBAL', ...getAllGuildIds()];
+  const allIds = await getAllGuildIds();
+  const guildIds = ['GLOBAL', ...allIds];
   const now = Date.now();
 
   for (const guildId of guildIds) {
-    const settings = getSettings(guildId);
+    const settings = await getSettings(guildId);
     if (settings.deliveryEnabled === false) {
       continue;
     }
@@ -167,15 +245,44 @@ initBot({
   },
   onDeliveryStart: async (guildId) => startDelivery(guildId),
   onDeliveryStop: async (guildId) => stopDelivery(guildId),
-  getRuntimeInfo: (guildId) => ({
-    startedAt: state.startedAt,
-    lastFetchAt: state.lastRunAt[guildId || 'GLOBAL'] || 0,
-    settings: getSettings(guildId || 'GLOBAL')
-  })
+  getRuntimeInfo: async (guildId) => {
+    const settings = await getSettings(guildId || 'GLOBAL');
+    return {
+      startedAt: state.startedAt,
+      lastFetchAt: state.lastRunAt[guildId || 'GLOBAL'] || 0,
+      settings
+    };
+  }
 }).catch((error) => {
   logger.error('Bot startup failed', { error: error.message });
 });
+Run = state.lastRunAt[guildId] || 0;
 
-setTimeout(() => {
-  logger.info('Startup complete. Waiting for dashboard confirmation to enable delivery.');
-}, 4000);
+    if (lastRun > 0 && now - lastRun < intervalMs) {
+      continue;
+    }
+
+    await guardedFetch('cron', { guildId });
+  }
+});
+
+initBot({
+  onReload: async (guildId) => {
+    logger.info('Reload requested from slash command', { guildId });
+  },
+  onNewsRequest: async (guildId) => {
+    return guardedFetch('slash-news', { force: true, dispatchToDiscord: false, guildId });
+  },
+  onDeliveryStart: async (guildId) => startDelivery(guildId),
+  onDeliveryStop: async (guildId) => stopDelivery(guildId),
+  getRuntimeInfo: async (guildId) => {
+    const settings = await getSettings(guildId || 'GLOBAL');
+    return {
+      startedAt: state.startedAt,
+      lastFetchAt: state.lastRunAt[guildId || 'GLOBAL'] || 0,
+      settings
+    };
+  }
+}).catch((error) => {
+  logger.error('Bot startup failed', { error: error.message });
+});

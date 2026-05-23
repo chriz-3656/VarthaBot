@@ -1,92 +1,87 @@
+let currentGuildId = 'GLOBAL';
+let currentGuildName = 'System Defaults';
+let settingsDirty = false;
+let socket = null;
+
 const el = {
-  guildIdSelect: document.getElementById('guildId'),
+  navItems: document.querySelectorAll('.nav-item'),
+  pages: document.querySelectorAll('.page-container'),
+  pageTitle: document.getElementById('pageTitle'),
+  
+  // User Profile
+  userName: document.getElementById('userName'),
+  userAvatar: document.getElementById('userAvatar'),
+  userAvatarFallback: document.getElementById('userAvatarFallback'),
+
+  // Overview
   botStatus: document.getElementById('botStatus'),
-  uptime: document.getElementById('uptime'),
-  lastFetch: document.getElementById('lastFetch'),
-  activeFeedsCount: document.getElementById('activeFeedsCount'),
-  newsCount: document.getElementById('newsCount'),
-  deliveryStatus: document.getElementById('deliveryStatus'),
+  guildCount: document.getElementById('guildCount'),
+  systemUptime: document.getElementById('systemUptime'),
+  overviewNewsList: document.getElementById('overviewNewsList'),
+
+  // Guilds
+  guildGrid: document.getElementById('guildGrid'),
+
+  // Badges
+  badges: [
+    document.getElementById('currentGuildFeedsBadge'),
+    document.getElementById('currentGuildDeliveryBadge'),
+    document.getElementById('currentGuildLogsBadge')
+  ],
+
+  // Feeds
   feedList: document.getElementById('feedList'),
-  newsList: document.getElementById('newsList'),
-  logPanel: document.getElementById('logPanel'),
-  startDeliveryBtn: document.getElementById('startDeliveryBtn'),
-  stopDeliveryBtn: document.getElementById('stopDeliveryBtn'),
-  fetchNowBtn: document.getElementById('fetchNowBtn'),
-  sendLatestBtn: document.getElementById('sendLatestBtn'),
-  themeToggle: document.getElementById('themeToggle'),
   addFeedForm: document.getElementById('addFeedForm'),
   feedName: document.getElementById('feedName'),
   feedUrl: document.getElementById('feedUrl'),
+
+  // Delivery
+  deliveryStatusText: document.getElementById('deliveryStatusText'),
+  btnStartDelivery: document.getElementById('btnStartDelivery'),
+  btnStopDelivery: document.getElementById('btnStopDelivery'),
+  btnFetchNow: document.getElementById('btnFetchNow'),
+  
+  // Settings Form
   settingsForm: document.getElementById('settingsForm'),
-  postMode: document.getElementById('postMode'),
   discordChannelId: document.getElementById('discordChannelId'),
   webhookUrl: document.getElementById('webhookUrl'),
   fetchIntervalSeconds: document.getElementById('fetchIntervalSeconds'),
-  maxNewsPerCycle: document.getElementById('maxNewsPerCycle'),
-  rateLimitMs: document.getElementById('rateLimitMs'),
   includeKeywords: document.getElementById('includeKeywords'),
-  excludeKeywords: document.getElementById('excludeKeywords'),
-  botEnabled: document.getElementById('botEnabled'),
-  embedStyle: document.getElementById('embedStyle'),
-  accentColor: document.getElementById('accentColor'),
-  enableImages: document.getElementById('enableImages'),
-  descriptionLength: document.getElementById('descriptionLength'),
-  enableCategoryTags: document.getElementById('enableCategoryTags'),
-  enableButtons: document.getElementById('enableButtons'),
-  footerBrandingText: document.getElementById('footerBrandingText'),
-  fallbackImageUrl: document.getElementById('fallbackImageUrl')
+
+  // Logs
+  terminalLogs: document.getElementById('terminalLogs')
 };
 
-const THEME_KEY = 'vartha_dashboard_theme';
-let settingsDirty = false;
-let settingsSaving = false;
-let currentGuildId = 'GLOBAL';
+// --- Navigation ---
+el.navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const target = item.dataset.target;
+    
+    el.navItems.forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
 
-function getPreferredTheme() {
-  const saved = localStorage.getItem(THEME_KEY);
-  if (saved === 'light' || saved === 'dark') {
-    return saved;
-  }
-
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-function applyTheme(theme) {
-  if (theme === 'light') {
-    document.body.setAttribute('data-theme', 'light');
-  } else {
-    document.body.removeAttribute('data-theme');
-  }
-  if (el.themeToggle) {
-    el.themeToggle.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
-  }
-}
-
-function initTheme() {
-  applyTheme(getPreferredTheme());
-
-  if (!el.themeToggle) {
-    return;
-  }
-
-  el.themeToggle.addEventListener('click', () => {
-    const current = document.body.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    localStorage.setItem(THEME_KEY, next);
-    applyTheme(next);
+    el.pages.forEach(p => p.classList.add('hidden'));
+    document.getElementById(`page-${target}`).classList.remove('hidden');
+    
+    el.pageTitle.textContent = item.textContent;
   });
-}
+});
 
+// --- API Helpers ---
 async function request(path, options = {}) {
   const separator = path.includes('?') ? '&' : '?';
-  const fullPath = `${path}${separator}guildId=${currentGuildId}`;
-
-  const res = await fetch(`/api${fullPath}`, {
+  const fullPath = `/api${path}${separator}guildId=${currentGuildId}`;
+  
+  const res = await fetch(fullPath, {
     headers: { 'Content-Type': 'application/json' },
     ...options
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      window.location.href = '/auth/discord';
+      return;
+    }
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed: ${res.status}`);
   }
@@ -94,344 +89,235 @@ async function request(path, options = {}) {
   return res.json();
 }
 
-function toInputValue(value) {
-  if (Array.isArray(value)) {
-    return value.join(', ');
-  }
-  return String(value || '');
-}
-
-function renderFeeds(items) {
-  el.feedList.innerHTML = '';
-
-  for (const feed of items) {
-    const node = document.createElement('div');
-    node.className = 'feed-item';
-    node.innerHTML = `
-      <strong>${feed.name}</strong>
-      <div>${feed.url}</div>
-      <div class="feed-actions">
-        <button data-action="toggle" data-id="${feed.id}">${feed.enabled ? 'Disable' : 'Enable'}</button>
-        <button data-action="remove" data-id="${feed.id}">Remove</button>
-      </div>
-    `;
-    el.feedList.appendChild(node);
-  }
-}
-
-function renderNews(items) {
-  el.newsList.innerHTML = '';
-
-  for (const item of items.slice(0, 20)) {
-    const node = document.createElement('div');
-    node.className = 'news-item';
-    node.dataset.link = item.link || '';
-    const category = deriveCategory(item);
-    node.innerHTML = `
-      <strong>${item.title}</strong>
-      <div>${item.summary || ''}</div>
-      <div class="news-meta">
-        <span class="badge">${category}</span>
-        <span>${item.source || 'Unknown'}</span>
-        <span>${new Date(item.pubDate).toLocaleString()}</span>
-      </div>
-    `;
-    el.newsList.appendChild(node);
-  }
-}
-
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/\"/g, '&quot;')
+    .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
 
-function deriveCategory(item) {
-  const hay = `${item.title || ''} ${item.summary || ''}`.toLowerCase();
-  if (hay.includes('breaking') || hay.includes('ബ്രേക്കിംഗ്') || hay.includes('latest')) {
-    return 'Breaking';
-  }
-  if (hay.includes('election') || hay.includes('assembly') || hay.includes('poll') || hay.includes('തിരഞ്ഞെടുപ്പ്')) {
-    return 'Politics';
-  }
-  if (hay.includes('tech') || hay.includes('technology') || hay.includes('ai')) {
-    return 'Tech';
-  }
-  if (hay.includes('kerala') || hay.includes('കേരള')) {
-    return 'Kerala';
-  }
-  return 'General';
+function updateBadges() {
+  el.badges.forEach(b => {
+    b.textContent = currentGuildName;
+  });
 }
 
-function renderLogs(items) {
-  el.logPanel.innerHTML = items
-    .slice()
-    .reverse()
-    .map((line) => {
-      const level = String(line.level || 'info').toLowerCase();
-      const text = `[${line.timestamp}] [${String(line.level || '').toUpperCase()}] ${line.message}`;
-      return `<div class="log-line ${level}">${escapeHtml(text)}</div>`;
-    })
-    .join('');
+// --- Socket.IO ---
+function initSocket() {
+  if (socket) socket.disconnect();
+  
+  socket = io({ path: '/socket.io' });
+  
+  socket.on('connect', () => {
+    socket.emit('subscribe_logs', currentGuildId);
+  });
 
-  el.logPanel.scrollTop = el.logPanel.scrollHeight;
+  socket.on('new_log', (entry) => {
+    appendLog(entry);
+  });
 }
 
-function renderStatus(status, stats = {}) {
-  el.botStatus.textContent = status.botOnline ? 'Online' : 'Offline';
-  el.botStatus.classList.toggle('online', status.botOnline);
-  el.botStatus.classList.toggle('offline', !status.botOnline);
-  const started = status.startedAt ? new Date(status.startedAt).toLocaleString() : '-';
-  el.uptime.textContent = `Started: ${started} • ${status.guildCount || 0} Servers Connected`;
-  const lastFetch = status.lastFetchAt && status.lastFetchAt > 0 ? new Date(status.lastFetchAt).toLocaleString() : 'Never';
-  el.lastFetch.textContent = lastFetch;
-  el.activeFeedsCount.textContent = String(stats.activeFeeds || 0);
-  el.newsCount.textContent = String(stats.newsCount || 0);
-
-  const deliveryEnabled = status.deliveryEnabled !== false;
-  el.deliveryStatus.textContent = deliveryEnabled ? 'Delivery Active' : 'Delivery Locked';
-  el.deliveryStatus.classList.toggle('online', deliveryEnabled);
-  el.deliveryStatus.classList.toggle('offline', !deliveryEnabled);
-  el.startDeliveryBtn.disabled = deliveryEnabled;
-  el.stopDeliveryBtn.disabled = !deliveryEnabled;
-  el.startDeliveryBtn.textContent = deliveryEnabled ? 'Delivery Started' : 'Start News Delivery';
-  el.stopDeliveryBtn.textContent = deliveryEnabled ? 'Stop News Delivery' : 'Delivery Stopped';
-}
-
-function renderSettings(settings) {
-  if (settingsDirty || settingsSaving) {
-    return;
+function appendLog(line) {
+  const level = String(line.level || 'info').toLowerCase();
+  const text = `[${line.timestamp}] [${String(line.level || '').toUpperCase()}] ${line.message}`;
+  
+  const div = document.createElement('div');
+  div.className = `log-line log-${level}`;
+  div.textContent = text;
+  
+  el.terminalLogs.appendChild(div);
+  
+  // Auto-scroll
+  if (el.terminalLogs.childNodes.length > 300) {
+    el.terminalLogs.removeChild(el.terminalLogs.firstChild);
   }
-
-  el.postMode.value = settings.postMode || 'hybrid';
-  el.discordChannelId.value = settings.discordChannelId || '';
-  el.webhookUrl.value = settings.webhookUrl || '';
-  el.fetchIntervalSeconds.value = settings.fetchIntervalSeconds || 1800;
-  el.maxNewsPerCycle.value = settings.maxNewsPerCycle || 5;
-  el.rateLimitMs.value = settings.rateLimitMs || 1200;
-  el.includeKeywords.value = toInputValue(settings.includeKeywords);
-  el.excludeKeywords.value = toInputValue(settings.excludeKeywords);
-  el.botEnabled.checked = Boolean(settings.botEnabled);
-  el.embedStyle.value = settings.embedStyle || 'card';
-  el.accentColor.value = settings.accentColor || '#7C3AED';
-  el.enableImages.checked = settings.enableImages !== false;
-  el.descriptionLength.value = settings.descriptionLength || 200;
-  el.enableCategoryTags.checked = settings.enableCategoryTags !== false;
-  el.enableButtons.checked = settings.enableButtons !== false;
-  el.footerBrandingText.value = settings.footerBrandingText || 'Powered by വാർത്ത ബോട്ട്';
-  el.fallbackImageUrl.value = settings.fallbackImageUrl || '';
+  el.terminalLogs.scrollTop = el.terminalLogs.scrollHeight;
 }
 
-async function renderGuilds() {
+// --- Data Fetching & Rendering ---
+async function loadUserSession() {
+  try {
+    const data = await request('/me'); // doesn't use guildId query param effectively
+    if (data.user) {
+      el.userName.textContent = data.user.username;
+      if (data.user.avatar) {
+        el.userAvatar.src = `https://cdn.discordapp.com/avatars/${data.user.id}/${data.user.avatar}.png`;
+        el.userAvatar.style.display = 'block';
+        el.userAvatarFallback.style.display = 'none';
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load user session', error);
+  }
+}
+
+async function loadOverview() {
+  try {
+    const status = await request('/status');
+    const news = await request('/news');
+
+    el.botStatus.textContent = status.botOnline ? 'Online' : 'Offline';
+    el.guildCount.textContent = String(status.guildCount || 0);
+    
+    if (status.startedAt) {
+      const start = new Date(status.startedAt);
+      const diff = Math.floor((Date.now() - start.getTime()) / 1000);
+      const h = Math.floor(diff / 3600);
+      const m = Math.floor((diff % 3600) / 60);
+      el.systemUptime.textContent = `${h}h ${m}m`;
+    }
+
+    el.overviewNewsList.innerHTML = '';
+    (news.items || []).slice(0, 5).forEach(item => {
+      const node = document.createElement('div');
+      node.className = 'list-item';
+      node.innerHTML = `
+        <div class="list-item-content">
+          <h4>${escapeHtml(item.title)}</h4>
+          <p>${escapeHtml(item.source)} • ${new Date(item.pubDate).toLocaleString()}</p>
+        </div>
+      `;
+      el.overviewNewsList.appendChild(node);
+    });
+
+  } catch (error) {
+    console.error('Error loading overview', error);
+  }
+}
+
+async function loadGuilds() {
   try {
     const { guilds } = await request('/guilds');
-    const current = el.guildIdSelect.value;
+    el.guildGrid.innerHTML = '';
 
-    el.guildIdSelect.innerHTML = guilds
-      .map((g) => `<option value="${g.id}" ${g.id === current ? 'selected' : ''}>${escapeHtml(g.name)}</option>`)
-      .join('');
+    guilds.forEach(g => {
+      const node = document.createElement('div');
+      node.className = `card guild-card ${g.id === currentGuildId ? 'active' : ''}`;
+      node.onclick = () => selectGuild(g.id, g.name);
+
+      node.innerHTML = `
+        <div class="guild-header">
+          <div class="guild-icon">${g.name.charAt(0)}</div>
+          <div class="guild-name">${escapeHtml(g.name)}</div>
+        </div>
+        <div style="display:flex; justify-content: space-between; align-items:center;">
+          <span style="font-size:0.85rem; color:var(--text-secondary)">ID: ${g.id === 'GLOBAL' ? 'Default' : g.id}</span>
+          <span class="badge ${g.deliveryEnabled ? 'success' : 'danger'}">${g.deliveryEnabled ? 'Active' : 'Disabled'}</span>
+        </div>
+      `;
+      el.guildGrid.appendChild(node);
+    });
   } catch (error) {
-    console.error('Failed to load guilds', error);
+    console.error('Error loading guilds', error);
   }
 }
 
-async function refreshAll() {
-  const [feeds, news, logs, settings, status] = await Promise.all([
-    request('/feeds'),
-    request('/news'),
-    request('/logs?limit=120'),
-    request('/settings'),
-    request('/status')
-  ]);
-
-  renderFeeds(feeds.items || []);
-  renderNews(news.items || []);
-  renderLogs(logs.items || []);
-  renderSettings(settings.item || {});
-  renderStatus(status || {}, {
-    activeFeeds: (feeds.items || []).filter((feed) => feed.enabled).length,
-    newsCount: (news.items || []).length
-  });
+function selectGuild(id, name) {
+  currentGuildId = id;
+  currentGuildName = name;
+  updateBadges();
+  initSocket(); // Re-subscribe to logs
+  refreshGuildData();
+  loadGuilds(); // re-render to update active class
 }
 
-function initSettingsDirtyTracking() {
-  const fields = el.settingsForm.querySelectorAll('input, select, textarea');
-  fields.forEach((field) => {
-    field.addEventListener('input', () => {
-      settingsDirty = true;
+async function refreshGuildData() {
+  try {
+    const [feeds, settings, logs, status] = await Promise.all([
+      request('/feeds'),
+      request('/settings'),
+      request('/logs?limit=50'),
+      request('/status')
+    ]);
+
+    // Render Feeds
+    el.feedList.innerHTML = '';
+    (feeds.items || []).forEach(feed => {
+      const node = document.createElement('div');
+      node.className = 'list-item';
+      node.innerHTML = `
+        <div class="list-item-content">
+          <h4>${escapeHtml(feed.name)}</h4>
+          <p>${escapeHtml(feed.url)}</p>
+        </div>
+        <div class="list-item-actions">
+          <button class="btn-secondary" data-action="toggle" data-id="${feed.id}">${feed.enabled ? 'Disable' : 'Enable'}</button>
+          <button class="btn-danger" data-action="remove" data-id="${feed.id}">Delete</button>
+        </div>
+      `;
+      el.feedList.appendChild(node);
     });
-    field.addEventListener('change', () => {
-      settingsDirty = true;
-    });
-  });
+
+    // Render Settings
+    if (!settingsDirty) {
+      const s = settings.item || {};
+      el.discordChannelId.value = s.discordChannelId || '';
+      el.webhookUrl.value = s.webhookUrl || '';
+      el.fetchIntervalSeconds.value = s.fetchIntervalSeconds || 1800;
+      el.includeKeywords.value = Array.isArray(s.includeKeywords) ? s.includeKeywords.join(', ') : '';
+    }
+
+    // Render Status
+    const deliveryEnabled = status.deliveryEnabled !== false;
+    el.deliveryStatusText.textContent = deliveryEnabled ? 'Delivery is currently ACTIVE.' : 'Delivery is currently DISABLED.';
+    el.btnStartDelivery.disabled = deliveryEnabled;
+    el.btnStopDelivery.disabled = !deliveryEnabled;
+
+    // Render Logs (initial payload)
+    el.terminalLogs.innerHTML = '';
+    (logs.items || []).slice().reverse().forEach(appendLog);
+
+  } catch (error) {
+    console.error('Error refreshing guild data', error);
+  }
 }
 
-el.guildIdSelect.addEventListener('change', (event) => {
-  currentGuildId = event.target.value;
-  settingsDirty = false;
-  refreshAll().catch(console.error);
-});
-
-el.fetchNowBtn.addEventListener('click', async () => {
-  el.fetchNowBtn.disabled = true;
-  el.fetchNowBtn.textContent = 'Fetching...';
-
-  try {
-    const response = await request('/fetch', { method: 'POST' });
-    if (response?.result?.reason === 'delivery_disabled') {
-      alert('Start News Delivery first for this server.');
-    } else if (Number(response?.result?.sent || 0) === 0) {
-      await request('/send-latest', {
-        method: 'POST',
-        body: JSON.stringify({ count: 1 })
-      });
-    }
-    await refreshAll();
-  } catch (error) {
-    alert(error.message);
-  } finally {
-    el.fetchNowBtn.disabled = false;
-    el.fetchNowBtn.textContent = 'Fetch Now';
-  }
-});
-
-el.startDeliveryBtn.addEventListener('click', async () => {
-  el.startDeliveryBtn.disabled = true;
-  el.startDeliveryBtn.textContent = 'Starting...';
-
-  try {
-    await request('/delivery/start', { method: 'POST' });
-    await refreshAll();
-  } catch (error) {
-    alert(error.message);
-    el.startDeliveryBtn.disabled = false;
-    el.startDeliveryBtn.textContent = 'Start News Delivery';
-  }
-});
-
-el.stopDeliveryBtn.addEventListener('click', async () => {
-  el.stopDeliveryBtn.disabled = true;
-  el.stopDeliveryBtn.textContent = 'Stopping...';
-
-  try {
-    await request('/delivery/stop', { method: 'POST' });
-    await refreshAll();
-  } catch (error) {
-    alert(error.message);
-    el.stopDeliveryBtn.disabled = false;
-    el.stopDeliveryBtn.textContent = 'Stop News Delivery';
-  }
-});
-
-el.sendLatestBtn.addEventListener('click', async () => {
-  el.sendLatestBtn.disabled = true;
-  el.sendLatestBtn.textContent = 'Sending...';
-
-  try {
-    const response = await request('/send-latest', {
-      method: 'POST',
-      body: JSON.stringify({ count: 1 })
-    });
-    if (response?.result?.reason === 'delivery_disabled') {
-      alert('Start News Delivery first for this server.');
-    }
-    await refreshAll();
-  } catch (error) {
-    alert(error.message);
-  } finally {
-    el.sendLatestBtn.disabled = false;
-    el.sendLatestBtn.textContent = 'Send Latest News';
-  }
-});
-
-el.newsList.addEventListener('click', (event) => {
-  const item = event.target.closest('.news-item');
-  if (!item || !item.dataset.link) {
-    return;
-  }
-  window.open(item.dataset.link, '_blank', 'noopener,noreferrer');
-});
-
-el.feedList.addEventListener('click', async (event) => {
-  const btn = event.target.closest('button[data-action]');
-  if (!btn) {
-    return;
-  }
-
-  const id = btn.dataset.id;
-  const action = btn.dataset.action;
-
-  try {
-    if (action === 'toggle') {
-      const feeds = await request('/feeds');
-      const current = (feeds.items || []).find((f) => f.id === id);
-      if (!current) {
-        return;
-      }
-
-      await request(`/feeds/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ enabled: !current.enabled })
-      });
-    }
-
-    if (action === 'remove') {
-      await request(`/feeds/${id}`, {
-        method: 'DELETE'
-      });
-    }
-
-    await refreshAll();
-  } catch (error) {
-    alert(error.message);
-  }
-});
-
-el.addFeedForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-
+// --- Event Listeners ---
+el.addFeedForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
   try {
     await request('/feeds', {
       method: 'POST',
-      body: JSON.stringify({
-        name: el.feedName.value,
-        url: el.feedUrl.value,
-        enabled: true
-      })
+      body: JSON.stringify({ name: el.feedName.value, url: el.feedUrl.value })
     });
-
     el.addFeedForm.reset();
-    await refreshAll();
+    refreshGuildData();
   } catch (error) {
     alert(error.message);
   }
 });
 
-el.settingsForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  settingsSaving = true;
+el.feedList.addEventListener('click', async (e) => {
+  if (e.target.tagName !== 'BUTTON') return;
+  const id = e.target.dataset.id;
+  const action = e.target.dataset.action;
 
+  try {
+    if (action === 'remove') {
+      await request(`/feeds/${id}`, { method: 'DELETE' });
+    } else if (action === 'toggle') {
+      const isDisable = e.target.textContent === 'Disable';
+      await request(`/feeds/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ enabled: !isDisable })
+      });
+    }
+    refreshGuildData();
+  } catch (error) {
+    alert(error.message);
+  }
+});
+
+el.settingsForm.addEventListener('input', () => settingsDirty = true);
+el.settingsForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
   const payload = {
-    postMode: el.postMode.value,
     discordChannelId: el.discordChannelId.value.trim(),
     webhookUrl: el.webhookUrl.value.trim(),
     fetchIntervalSeconds: Number(el.fetchIntervalSeconds.value || 1800),
-    maxNewsPerCycle: Number(el.maxNewsPerCycle.value || 5),
-    rateLimitMs: Number(el.rateLimitMs.value || 1200),
-    includeKeywords: el.includeKeywords.value,
-    excludeKeywords: el.excludeKeywords.value,
-    botEnabled: el.botEnabled.checked,
-    embedStyle: el.embedStyle.value,
-    accentColor: el.accentColor.value,
-    enableImages: el.enableImages.checked,
-    descriptionLength: Number(el.descriptionLength.value || 200),
-    enableCategoryTags: el.enableCategoryTags.checked,
-    enableButtons: el.enableButtons.checked,
-    footerBrandingText: el.footerBrandingText.value.trim(),
-    fallbackImageUrl: el.fallbackImageUrl.value.trim()
+    includeKeywords: el.includeKeywords.value
   };
 
   try {
@@ -439,29 +325,54 @@ el.settingsForm.addEventListener('submit', async (event) => {
       method: 'POST',
       body: JSON.stringify(payload)
     });
-
     settingsDirty = false;
-    await refreshAll();
+    alert('Settings saved successfully.');
+    refreshGuildData();
   } catch (error) {
     alert(error.message);
-  } finally {
-    settingsSaving = false;
   }
 });
 
-initTheme();
-initSettingsDirtyTracking();
-
-async function startup() {
-  await renderGuilds();
-  await refreshAll();
-}
-
-startup().catch((error) => {
-  console.error(error);
+el.btnStartDelivery.addEventListener('click', async () => {
+  try {
+    await request('/delivery/start', { method: 'POST' });
+    refreshGuildData();
+  } catch (error) {
+    alert(error.message);
+  }
 });
 
-setInterval(() => {
-  renderGuilds().catch(() => {});
-  refreshAll().catch(() => {});
-}, 10000);
+el.btnStopDelivery.addEventListener('click', async () => {
+  try {
+    await request('/delivery/stop', { method: 'POST' });
+    refreshGuildData();
+  } catch (error) {
+    alert(error.message);
+  }
+});
+
+el.btnFetchNow.addEventListener('click', async () => {
+  el.btnFetchNow.disabled = true;
+  el.btnFetchNow.textContent = 'Fetching...';
+  try {
+    await request('/fetch', { method: 'POST' });
+    refreshGuildData();
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    el.btnFetchNow.disabled = false;
+    el.btnFetchNow.textContent = 'Fetch Now';
+  }
+});
+
+// --- Boot ---
+async function boot() {
+  await loadUserSession();
+  await loadOverview();
+  await loadGuilds();
+  updateBadges();
+  initSocket();
+  await refreshGuildData();
+}
+
+boot();

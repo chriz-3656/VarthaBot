@@ -1,55 +1,180 @@
-const { readJson, writeJson } = require('./storageService');
+const supabase = require('./supabaseClient');
 const { defaults } = require('../config');
+const logger = require('../utils/logger');
 
-function getFeeds(guildId = 'GLOBAL') {
-  const allFeeds = readJson('feeds.json', {});
-  // Migration: if it's an array, it's the old format
-  if (Array.isArray(allFeeds)) {
-    return allFeeds;
+async function getFeeds(guildId = 'GLOBAL') {
+  const { data, error } = await supabase
+    .from('feeds')
+    .select('*')
+    .eq('guild_id', guildId);
+
+  if (error) {
+    logger.error('Error fetching feeds from Supabase', { error: error.message, guildId });
+    return guildId === 'GLOBAL' ? defaults.feeds : [];
   }
-  const feeds = allFeeds[guildId] || allFeeds['GLOBAL'] || defaults.feeds;
-  return Array.isArray(feeds) ? feeds : [];
+
+  if (!data || data.length === 0) {
+    return guildId === 'GLOBAL' ? defaults.feeds : [];
+  }
+
+  return data;
 }
 
-function setFeeds(feeds, guildId = 'GLOBAL') {
-  let allFeeds = readJson('feeds.json', {});
-  if (Array.isArray(allFeeds)) {
-    allFeeds = { GLOBAL: allFeeds };
+async function setFeeds(feeds, guildId = 'GLOBAL') {
+  // First, delete existing feeds for this guild
+  const { error: deleteError } = await supabase
+    .from('feeds')
+    .delete()
+    .eq('guild_id', guildId);
+
+  if (deleteError) {
+    logger.error('Error deleting old feeds in Supabase', { error: deleteError.message, guildId });
+    throw deleteError;
   }
-  allFeeds[guildId] = feeds;
-  writeJson('feeds.json', allFeeds);
+
+  if (!feeds || feeds.length === 0) return;
+
+  const payload = feeds.map((f) => ({
+    id: f.id,
+    guild_id: guildId,
+    name: f.name,
+    url: f.url,
+    category: f.category || 'General',
+    enabled: f.enabled !== false
+  }));
+
+  const { error: insertError } = await supabase
+    .from('feeds')
+    .insert(payload);
+
+  if (insertError) {
+    logger.error('Error inserting feeds to Supabase', { error: insertError.message, guildId });
+    throw insertError;
+  }
 }
 
-function getSettings(guildId = 'GLOBAL') {
-  const allSettings = readJson('settings.json', {});
-  // Migration: if it has postMode, it's the old format
-  if (allSettings && !allSettings.GLOBAL && allSettings.postMode) {
-    return { ...defaults.settings, ...allSettings };
+async function getSettings(guildId = 'GLOBAL') {
+  const { data, error } = await supabase
+    .from('guild_settings')
+    .select('*')
+    .eq('guild_id', guildId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') { // PGRST116 is 'No rows found'
+    logger.error('Error fetching settings from Supabase', { error: error.message, guildId });
   }
 
-  const settings = allSettings[guildId] || allSettings['GLOBAL'] || {};
+  // Convert DB snake_case to camelCase
+  const settings = data ? {
+    postMode: data.post_mode,
+    fetchIntervalSeconds: data.fetch_interval_seconds,
+    maxNewsPerCycle: data.max_news_per_cycle,
+    maxArticlesPerFeed: data.max_articles_per_feed,
+    feedFetchDelayMs: data.feed_fetch_delay_ms,
+    deliveryEnabled: data.delivery_enabled,
+    discordChannelId: data.channel_id,
+    webhookUrl: data.webhook_url,
+    includeKeywords: data.include_keywords ? data.include_keywords.split(',') : [],
+    excludeKeywords: data.exclude_keywords ? data.exclude_keywords.split(',') : [],
+    botEnabled: data.bot_enabled,
+    rateLimitMs: data.rate_limit_ms,
+    embedStyle: data.embed_style,
+    accentColor: data.accent_color,
+    enableImages: data.enable_images,
+    descriptionLength: data.description_length,
+    enableCategoryTags: data.enable_category_tags,
+    enableButtons: data.enable_buttons,
+    footerBrandingText: data.footer_branding_text,
+    fallbackImageUrl: data.fallback_image_url,
+    retryBotAfterFallback: data.retry_bot_after_fallback,
+    retryBotDelayMs: data.retry_bot_delay_ms
+  } : {};
+
+  // Fetch guild name from guilds table
+  if (data) {
+    const { data: guildData } = await supabase
+      .from('guilds')
+      .select('guild_name')
+      .eq('guild_id', guildId)
+      .single();
+    if (guildData) {
+      settings.guildName = guildData.guild_name;
+    }
+  }
+
   return {
     ...defaults.settings,
     ...settings
   };
 }
 
-function setSettings(settings, guildId = 'GLOBAL') {
-  let allSettings = readJson('settings.json', {});
-  if (allSettings && !allSettings.GLOBAL && allSettings.postMode) {
-    allSettings = { GLOBAL: allSettings };
+async function setSettings(settings, guildId = 'GLOBAL') {
+  const payload = {
+    guild_id: guildId,
+    channel_id: settings.discordChannelId,
+    post_mode: settings.postMode,
+    fetch_interval_seconds: settings.fetchIntervalSeconds,
+    max_news_per_cycle: settings.maxNewsPerCycle,
+    max_articles_per_feed: settings.maxArticlesPerFeed,
+    feed_fetch_delay_ms: settings.feedFetchDelayMs,
+    delivery_enabled: settings.deliveryEnabled,
+    webhook_url: settings.webhookUrl,
+    include_keywords: Array.isArray(settings.includeKeywords) ? settings.includeKeywords.join(',') : settings.includeKeywords,
+    exclude_keywords: Array.isArray(settings.excludeKeywords) ? settings.excludeKeywords.join(',') : settings.excludeKeywords,
+    bot_enabled: settings.botEnabled,
+    rate_limit_ms: settings.rateLimitMs,
+    embed_style: settings.embedStyle,
+    accent_color: settings.accentColor,
+    enable_images: settings.enableImages,
+    description_length: settings.descriptionLength,
+    enable_category_tags: settings.enableCategoryTags,
+    enable_buttons: settings.enableButtons,
+    footer_branding_text: settings.footerBrandingText,
+    fallback_image_url: settings.fallbackImageUrl,
+    retry_bot_after_fallback: settings.retryBotAfterFallback,
+    retry_bot_delay_ms: settings.retryBotDelayMs
+  };
+
+  const { error } = await supabase
+    .from('guild_settings')
+    .upsert(payload, { onConflict: 'guild_id' });
+
+  if (error) {
+    logger.error('Error upserting settings to Supabase', { error: error.message, guildId });
+    throw error;
   }
-  allSettings[guildId] = settings;
-  writeJson('settings.json', allSettings);
 }
 
-function getAllGuildIds() {
-  const allSettings = readJson('settings.json', {});
-  // Migration: if it has postMode, it's the old format (no individual guilds yet)
-  if (allSettings && !allSettings.GLOBAL && allSettings.postMode) {
+async function getAllGuildIds() {
+  const { data, error } = await supabase
+    .from('guilds')
+    .select('guild_id')
+    .eq('active', true);
+
+  if (error) {
+    logger.error('Error fetching guild IDs from Supabase', { error: error.message });
     return [];
   }
-  return Object.keys(allSettings).filter((id) => id !== 'GLOBAL');
+
+  return (data || []).map((g) => g.guild_id).filter((id) => id !== 'GLOBAL');
+}
+
+async function syncGuildData(guild) {
+  if (!guild || !guild.id) return;
+  const payload = {
+    guild_id: guild.id,
+    owner_id: guild.ownerId,
+    guild_name: guild.name,
+    icon: guild.icon,
+    active: true
+  };
+  const { error } = await supabase
+    .from('guilds')
+    .upsert(payload, { onConflict: 'guild_id' });
+  
+  if (error) {
+    logger.error('Error syncing guild data to Supabase', { error: error.message, guildId: guild.id });
+  }
 }
 
 module.exports = {
@@ -57,5 +182,6 @@ module.exports = {
   setFeeds,
   getSettings,
   setSettings,
-  getAllGuildIds
+  getAllGuildIds,
+  syncGuildData
 };

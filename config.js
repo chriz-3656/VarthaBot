@@ -146,8 +146,11 @@ module.exports = {
   env: {
     DISCORD_TOKEN: process.env.DISCORD_TOKEN || '',
     CLIENT_ID: process.env.CLIENT_ID || '',
-    GUILD_ID: process.env.GUILD_ID || '',
-    WEBHOOK_URL: process.env.WEBHOOK_URL || '',
+    DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET || '',
+    DISCORD_CALLBACK_URL: process.env.DISCORD_CALLBACK_URL || 'http://localhost:3000/auth/discord/callback',
+    SESSION_SECRET: process.env.SESSION_SECRET || 'fallback_dev_secret',
+    SUPABASE_URL: process.env.SUPABASE_URL || '',
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
     PORT: Number(process.env.PORT || 3000)
   }
 };

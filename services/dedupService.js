@@ -1,8 +1,6 @@
-const { readJson, writeJson } = require('./storageService');
 const crypto = require('crypto');
-
-const FILE_NAME = 'seen.json';
-const MAX_ITEMS = 200;
+const supabase = require('./supabaseClient');
+const logger = require('../utils/logger');
 
 function normalizeText(value) {
   return String(value || '')
@@ -29,41 +27,49 @@ function createHashFromItem(item) {
   return crypto.createHash('sha1').update(key).digest('hex');
 }
 
-function getSeen(guildId = 'GLOBAL') {
-  const data = readJson(FILE_NAME, {});
-  if (Array.isArray(data.items)) {
-    return guildId === 'GLOBAL' ? data.items : [];
+async function getSeen(guildId = 'GLOBAL') {
+  const { data, error } = await supabase
+    .from('seen_articles')
+    .select('article_hash')
+    .eq('guild_id', guildId)
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  if (error) {
+    logger.error('Error fetching seen articles from Supabase', { error: error.message, guildId });
+    return [];
   }
-  const items = data[guildId]?.items || [];
-  return items.filter((item) => /^[a-f0-9]{40}$/i.test(String(item)));
+
+  return (data || []).map((row) => row.article_hash);
 }
 
-function has(item, guildId = 'GLOBAL') {
-  const hash = createHashFromItem(item);
-  if (!hash) {
-    return false;
+async function addMany(items, guildId = 'GLOBAL') {
+  if (!items || items.length === 0) return;
+
+  const payloads = items.map((item) => {
+    const hash = createHashFromItem(item);
+    if (!hash) return null;
+    return {
+      guild_id: guildId,
+      article_hash: hash,
+      article_url: item.link || item.guid || ''
+    };
+  }).filter(Boolean);
+
+  if (payloads.length === 0) return;
+
+  const { error } = await supabase
+    .from('seen_articles')
+    .upsert(payloads, { onConflict: 'guild_id,article_hash', ignoreDuplicates: true });
+
+  if (error) {
+    logger.error('Error inserting seen articles to Supabase', { error: error.message, guildId });
+    throw error;
   }
-  return getSeen(guildId).includes(hash);
-}
-
-function addMany(items, guildId = 'GLOBAL') {
-  let allData = readJson(FILE_NAME, {});
-  if (Array.isArray(allData.items)) {
-    allData = { GLOBAL: allData };
-  }
-
-  const current = getSeen(guildId);
-  const additions = items.map(createHashFromItem).filter(Boolean);
-
-  const merged = [...additions, ...current];
-  const deduped = [...new Set(merged)].slice(0, MAX_ITEMS);
-
-  allData[guildId] = { items: deduped };
-  writeJson(FILE_NAME, allData);
 }
 
 module.exports = {
-  has,
+  getSeen,
   addMany,
   normalizeKey,
   createHashFromItem

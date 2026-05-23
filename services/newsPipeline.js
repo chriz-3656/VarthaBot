@@ -8,8 +8,8 @@ const logger = require('../utils/logger');
 
 async function runFetchCycle(context, opts = {}) {
   const guildId = opts.guildId || 'GLOBAL';
-  const settings = getSettings(guildId);
-  const feeds = getFeeds(guildId);
+  const settings = await getSettings(guildId);
+  const feeds = await getFeeds(guildId);
   const reason = opts.reason || 'scheduled';
 
   if (!settings.botEnabled && !opts.force) {
@@ -30,11 +30,15 @@ async function runFetchCycle(context, opts = {}) {
     feedFetchDelayMs: settings.feedFetchDelayMs
   });
   const prioritized = sortByPriority(fetched, settings);
+  // Optional: saveNewsCache(prioritized); Note: Since we use DB, maybe drop this, but keep if needed.
   saveNewsCache(prioritized);
 
   const filtered = prioritized.filter((item) => isAllowed(item, settings));
+  const seenHashes = await dedupService.getSeen(guildId);
+  
   const fresh = filtered.filter((item) => {
-    const duplicate = dedupService.has(item, guildId);
+    const hash = dedupService.createHashFromItem(item);
+    const duplicate = seenHashes.includes(hash);
     if (duplicate) {
       logger.debug('Duplicate skipped', { title: item.title, source: item.source, guildId });
     }
@@ -47,7 +51,7 @@ async function runFetchCycle(context, opts = {}) {
   let sentCount = 0;
 
   if (batch.length > 0 && shouldDispatch) {
-    dedupService.addMany(batch, guildId);
+    await dedupService.addMany(batch, guildId);
     discordService.enqueueNews(batch, {
       settings: { ...settings, guildId },
       client: context.getClient()
