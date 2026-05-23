@@ -7,7 +7,7 @@ const { initBot, getClient } = require('./bot');
 const { createApiRouter } = require('./routes/api');
 const { runFetchCycle } = require('./services/newsPipeline');
 const { getNewsCache } = require('./services/rssService');
-const { getSettings, setSettings } = require('./services/runtimeService');
+const { getSettings, setSettings, getAllGuildIds } = require('./services/runtimeService');
 const { enqueueNews } = require('./services/discordService');
 
 ensureDataFiles();
@@ -17,17 +17,18 @@ app.use(express.json());
 
 const state = {
   startedAt: new Date().toISOString(),
-  lock: false,
-  lastRunAt: 0
+  locks: new Set(),
+  lastRunAt: {}
 };
 
-async function guardedFetch(reason, force = false, dispatchToDiscord = true) {
-  if (state.lock) {
-    logger.warn('Fetch skipped: previous cycle still running', { reason });
-    return { skipped: true, reason: 'busy' };
+async function guardedFetch(reason, opts = {}) {
+  const guildId = opts.guildId || 'GLOBAL';
+  if (state.locks.has(guildId)) {
+    logger.warn('Fetch skipped: previous cycle still running', { reason, guildId });
+    return { skipped: true, reason: 'busy', guildId };
   }
 
-  state.lock = true;
+  state.locks.add(guildId);
   try {
     const result = await runFetchCycle(
       {
@@ -35,28 +36,29 @@ async function guardedFetch(reason, force = false, dispatchToDiscord = true) {
       },
       {
         reason,
-        force,
-        dispatchToDiscord
+        force: opts.force || false,
+        dispatchToDiscord: opts.dispatchToDiscord !== false,
+        guildId
       }
     );
 
-    state.lastRunAt = Date.now();
+    state.lastRunAt[guildId] = Date.now();
     return result;
   } finally {
-    state.lock = false;
+    state.locks.delete(guildId);
   }
 }
 
-async function sendLatestNews(count = 1) {
-  const settings = getSettings();
+async function sendLatestNews(count = 1, guildId = 'GLOBAL') {
+  const settings = getSettings(guildId);
   if (settings.deliveryEnabled === false) {
-    return { sent: 0, reason: 'delivery_disabled' };
+    return { sent: 0, reason: 'delivery_disabled', guildId };
   }
 
   const latest = getNewsCache().slice(0, Math.max(1, count));
 
   if (latest.length === 0) {
-    return { sent: 0, reason: 'no_cached_news' };
+    return { sent: 0, reason: 'no_cached_news', guildId };
   }
 
   enqueueNews(latest, {
@@ -66,46 +68,53 @@ async function sendLatestNews(count = 1) {
 
   return {
     sent: latest.length,
-    titles: latest.map((item) => item.title)
+    titles: latest.map((item) => item.title),
+    guildId
   };
 }
 
-async function startDelivery() {
-  const current = getSettings();
+async function startDelivery(guildId = 'GLOBAL') {
+  const current = getSettings(guildId);
   if (current.deliveryEnabled !== true) {
-    setSettings({
-      ...current,
-      deliveryEnabled: true
-    });
-    logger.info('News delivery enabled from dashboard');
+    setSettings(
+      {
+        ...current,
+        deliveryEnabled: true
+      },
+      guildId
+    );
+    logger.info('News delivery enabled', { guildId });
   }
 
-  return { deliveryEnabled: true };
+  return { deliveryEnabled: true, guildId };
 }
 
-async function stopDelivery() {
-  const current = getSettings();
+async function stopDelivery(guildId = 'GLOBAL') {
+  const current = getSettings(guildId);
   if (current.deliveryEnabled !== false) {
-    setSettings({
-      ...current,
-      deliveryEnabled: false
-    });
-    logger.info('News delivery disabled from dashboard');
+    setSettings(
+      {
+        ...current,
+        deliveryEnabled: false
+      },
+      guildId
+    );
+    logger.info('News delivery disabled', { guildId });
   }
 
-  return { deliveryEnabled: false };
+  return { deliveryEnabled: false, guildId };
 }
 
 app.use(
   '/api',
   createApiRouter({
-    manualFetch: (reason) => guardedFetch(reason || 'manual', true, true),
+    manualFetch: (reason) => guardedFetch(reason || 'manual', { force: true, dispatchToDiscord: true }),
     sendLatest: (count) => sendLatestNews(count),
     startDelivery: () => startDelivery(),
     stopDelivery: () => stopDelivery(),
     getClient,
     startedAt: state.startedAt,
-    getLastRunAt: () => state.lastRunAt
+    getLastRunAt: () => state.lastRunAt['GLOBAL'] || 0
   })
 );
 
@@ -118,35 +127,50 @@ app.listen(env.PORT, () => {
   logger.info(`Dashboard/API server running on http://localhost:${env.PORT}`);
 });
 
-cron.schedule('* * * * *', async () => {
-  const settings = getSettings();
-  if (settings.deliveryEnabled === false) {
-    return;
-  }
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', { promise, reason: reason?.message || reason });
+});
 
-  const intervalMs = Math.max(60, Number(settings.fetchIntervalSeconds || 1800)) * 1000;
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception thrown:', { error: error.message, stack: error.stack });
+  // In production, you might want to exit and let a process manager (like pm2) restart the app
+  // process.exit(1);
+});
+
+cron.schedule('* * * * *', async () => {
+  const guildIds = ['GLOBAL', ...getAllGuildIds()];
   const now = Date.now();
 
-  if (state.lastRunAt > 0 && now - state.lastRunAt < intervalMs) {
-    return;
-  }
+  for (const guildId of guildIds) {
+    const settings = getSettings(guildId);
+    if (settings.deliveryEnabled === false) {
+      continue;
+    }
 
-  await guardedFetch('cron');
+    const intervalMs = Math.max(60, Number(settings.fetchIntervalSeconds || 1800)) * 1000;
+    const lastRun = state.lastRunAt[guildId] || 0;
+
+    if (lastRun > 0 && now - lastRun < intervalMs) {
+      continue;
+    }
+
+    await guardedFetch('cron', { guildId });
+  }
 });
 
 initBot({
-  onReload: async () => {
-    logger.info('Reload requested from slash command');
+  onReload: async (guildId) => {
+    logger.info('Reload requested from slash command', { guildId });
   },
-  onNewsRequest: async () => {
-    return guardedFetch('slash-news', true, false);
+  onNewsRequest: async (guildId) => {
+    return guardedFetch('slash-news', { force: true, dispatchToDiscord: false, guildId });
   },
-  onDeliveryStart: async () => startDelivery(),
-  onDeliveryStop: async () => stopDelivery(),
-  getRuntimeInfo: () => ({
+  onDeliveryStart: async (guildId) => startDelivery(guildId),
+  onDeliveryStop: async (guildId) => stopDelivery(guildId),
+  getRuntimeInfo: (guildId) => ({
     startedAt: state.startedAt,
-    lastFetchAt: state.lastRunAt,
-    settings: getSettings()
+    lastFetchAt: state.lastRunAt[guildId || 'GLOBAL'] || 0,
+    settings: getSettings(guildId || 'GLOBAL')
   })
 }).catch((error) => {
   logger.error('Bot startup failed', { error: error.message });

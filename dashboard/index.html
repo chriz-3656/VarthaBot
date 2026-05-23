@@ -14,7 +14,15 @@
     <div class="layout">
       <aside class="sidebar card shell-card">
         <h1>Vartha Bot</h1>
-        <p>Malayalam News Control System</p>
+        <p>Global News Monitor</p>
+
+        <div class="guild-selector-container">
+          <label for="guildId">Select Server</label>
+          <select id="guildId" class="guild-select">
+            <option value="GLOBAL">System Defaults</option>
+          </select>
+        </div>
+
         <nav>
           <a href="#status">Status</a>
           <a href="#controls">Controls</a>
@@ -75,6 +83,10 @@
                 <label>
                   Channel ID
                   <input id="discordChannelId" type="text" placeholder="Discord channel id" />
+                </label>
+                <label>
+                  Webhook URL (Optional Fallback)
+                  <input id="webhookUrl" type="url" placeholder="https://discord.com/api/webhooks/..." />
                 </label>
                 <label>
                   Post Interval (seconds)

@@ -9,6 +9,6 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Runtime data
-/data/logs.jsonl
-/data/newsCache.json
-/data/seen.json
+/data/*.json
+/data/*.jsonl
+!/data/.gitkeep

@@ -5,15 +5,27 @@ const {
   Routes,
   SlashCommandBuilder,
   PermissionFlagsBits,
-  ActivityType
+  ActivityType,
+  ChannelType
 } = require('discord.js');
 const { env } = require('./config');
 const logger = require('./utils/logger');
 const { getNewsCache } = require('./services/rssService');
 const { buildDiscordMessage } = require('./services/presentationService');
-const { getSettings } = require('./services/runtimeService');
+const { getSettings, setSettings } = require('./services/runtimeService');
 
 const guildCommands = [
+  new SlashCommandBuilder()
+    .setName('setup')
+    .setDescription('Configure the news delivery channel')
+    .addChannelOption((option) =>
+      option
+        .setName('channel')
+        .setDescription('The channel where news should be posted')
+        .addChannelTypes(ChannelType.GuildText)
+        .setRequired(true)
+    )
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
   new SlashCommandBuilder()
     .setName('news')
     .setDescription('Fetch latest Malayalam news'),
@@ -120,8 +132,8 @@ async function registerSlashCommands() {
   }
 }
 
-function buildNewsPayload(items, interactive) {
-  const settings = getSettings();
+function buildNewsPayload(items, interactive, guildId = 'GLOBAL') {
+  const settings = getSettings(guildId);
   const embeds = [];
   for (const item of items.slice(0, 5)) {
     const payload = buildDiscordMessage(item, settings, { enableInteractive: interactive });
@@ -150,7 +162,7 @@ function formatRuntimeInfo(runtime) {
   return {
     uptime: uptimeHrs > 0 ? `${uptimeHrs}h ${uptimeMin % 60}m` : `${uptimeMin}m`,
     started: startedAt ? startedAt.toLocaleString() : '-',
-    lastFetch: lastFetchAt ? lastFetchAt.toLocaleString() : 'No fetch yet'
+    lastFetch: lastFetchAt ? (lastFetchAt > 0 ? new Date(lastFetchAt).toLocaleString() : 'No fetch yet') : 'No fetch yet'
   };
 }
 
@@ -172,19 +184,29 @@ async function initBot(options = {}) {
   });
 
   client.on('interactionCreate', async (interaction) => {
+    const guildId = interaction.guildId || 'GLOBAL';
+
+    // Auto-sync guild name for the dashboard monitor
+    if (interaction.inGuild() && interaction.guild) {
+      const settings = getSettings(guildId);
+      if (settings.guildName !== interaction.guild.name) {
+        setSettings({ ...settings, guildName: interaction.guild.name }, guildId);
+      }
+    }
+
     try {
       if (interaction.isButton() && interaction.customId === 'refresh_news') {
         const ephemeral = interaction.inGuild();
         await interaction.deferReply({ ephemeral });
         if (typeof options.onNewsRequest === 'function') {
-          const result = await options.onNewsRequest();
+          const result = await options.onNewsRequest(guildId);
           const latest = Array.isArray(result?.latest) ? result.latest : [];
           if (latest.length === 0) {
             await interaction.editReply({ content: 'No fresh news available right now.' });
             return;
           }
 
-          const payload = buildNewsPayload(latest.slice(0, 1), true);
+          const payload = buildNewsPayload(latest.slice(0, 1), true, guildId);
           await interaction.editReply({
             content: 'Latest news refreshed:',
             ...payload
@@ -200,13 +222,41 @@ async function initBot(options = {}) {
         return;
       }
 
+      if (interaction.commandName === 'setup') {
+        if (!interaction.inGuild()) {
+          await interaction.reply({ content: '/setup can only be used inside a server.', ephemeral: false });
+          return;
+        }
+
+        const channel = interaction.options.getChannel('channel');
+        if (!channel || !channel.isTextBased()) {
+          await interaction.reply({ content: 'Please select a valid text channel.', ephemeral: true });
+          return;
+        }
+
+        const current = getSettings(guildId);
+        const next = {
+          ...current,
+          guildName: interaction.guild.name,
+          discordChannelId: channel.id,
+          deliveryEnabled: true
+        };
+
+        setSettings(next, guildId);
+        await interaction.reply({
+          content: `✅ News delivery channel configured: ${channel}. Delivery is now enabled for this server.`,
+          ephemeral: true
+        });
+        return;
+      }
+
       if (interaction.commandName === 'news') {
         let items = getNewsCache();
         const ephemeral = interaction.inGuild();
         await interaction.deferReply({ ephemeral });
 
         if (typeof options.onNewsRequest === 'function') {
-          const result = await options.onNewsRequest();
+          const result = await options.onNewsRequest(guildId);
           if (Array.isArray(result?.latest) && result.latest.length > 0) {
             items = result.latest;
           }
@@ -219,12 +269,12 @@ async function initBot(options = {}) {
           return;
         }
 
-        const payload = buildNewsPayload(items, true);
+        const payload = buildNewsPayload(items, true, guildId);
         await interaction.editReply({ ...payload });
       }
 
       if (interaction.commandName === 'info') {
-        const runtime = typeof options.getRuntimeInfo === 'function' ? options.getRuntimeInfo() : {};
+        const runtime = typeof options.getRuntimeInfo === 'function' ? options.getRuntimeInfo(guildId) : {};
         const fmt = formatRuntimeInfo(runtime);
         const settings = runtime?.settings || {};
         const cached = getNewsCache().length;
@@ -232,7 +282,7 @@ async function initBot(options = {}) {
         const infoEmbed = {
           color: 0x7c3aed,
           title: 'വാർത്ത ബോട്ട് • Info',
-          description: 'Bot runtime and command details',
+          description: `Bot runtime and details for this ${interaction.inGuild() ? 'server' : 'DM'}`,
           fields: [
             { name: 'Uptime', value: fmt.uptime, inline: true },
             { name: 'Started At', value: fmt.started, inline: true },
@@ -240,14 +290,15 @@ async function initBot(options = {}) {
             { name: 'Post Mode', value: String(settings.postMode || 'hybrid'), inline: true },
             {
               name: 'Delivery',
-              value: settings.deliveryEnabled === false ? 'Disabled (Dashboard Locked)' : 'Enabled',
+              value: settings.deliveryEnabled === false ? 'Disabled' : 'Enabled',
               inline: true
             },
             { name: 'Fetch Interval', value: `${Number(settings.fetchIntervalSeconds || 1800)}s`, inline: true },
             { name: 'Cached News', value: String(cached), inline: true },
+            { name: 'Guild ID', value: guildId, inline: true },
             { name: 'Commands', value: '`/commands`, `/info`, `/news`, `/clear`, `/reload`', inline: false }
           ],
-          footer: { text: 'Powered by വാർത്ത ബോട്ട്' },
+          footer: { text: settings.footerBrandingText || 'Powered by വാർത്ത ബോട്ട്' },
           timestamp: new Date().toISOString()
         };
 
@@ -258,18 +309,20 @@ async function initBot(options = {}) {
       }
 
       if (interaction.commandName === 'commands') {
+        const settings = getSettings(guildId);
         const previewEmbed = {
           color: 0x38bdf8,
           title: 'വാർത്ത ബോട്ട് • Command Preview',
           description: 'Available commands and quick usage',
           fields: [
+            { name: '/setup channel:<#channel>', value: 'Set the target news channel (admin only)', inline: false },
             { name: '/commands', value: 'Show this command preview list', inline: false },
             { name: '/news', value: 'Fetch latest cached/fresh news', inline: false },
             { name: '/info', value: 'Show bot runtime details', inline: false },
             { name: '/clear count:<1-100>', value: 'Clear messages (DM: bot messages, Guild: requires Manage Messages)', inline: false },
             { name: '/reload', value: 'Reload settings/feeds (guild admin only)', inline: false }
           ],
-          footer: { text: 'Powered by വാർത്ത ബോട്ട്' },
+          footer: { text: settings.footerBrandingText || 'Powered by വാർത്ത ബോട്ട്' },
           timestamp: new Date().toISOString()
         };
 
@@ -340,13 +393,13 @@ async function initBot(options = {}) {
         }
 
         if (typeof options.onReload === 'function') {
-          await options.onReload();
+          await options.onReload(guildId);
         }
 
-        await interaction.reply({ content: 'Settings and feeds reloaded.', ephemeral: true });
+        await interaction.reply({ content: 'Settings and feeds reloaded for this server.', ephemeral: true });
       }
     } catch (error) {
-      logger.error('Interaction error', { error: error.message });
+      logger.error('Interaction error', { error: error.message, guildId });
       const ephemeral = interaction.inGuild();
       if (interaction.deferred || interaction.replied) {
         await interaction.followUp({ content: 'Action failed. Check logs.', ephemeral });

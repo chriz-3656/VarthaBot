@@ -1,4 +1,5 @@
 const el = {
+  guildIdSelect: document.getElementById('guildId'),
   botStatus: document.getElementById('botStatus'),
   uptime: document.getElementById('uptime'),
   lastFetch: document.getElementById('lastFetch'),
@@ -19,6 +20,7 @@ const el = {
   settingsForm: document.getElementById('settingsForm'),
   postMode: document.getElementById('postMode'),
   discordChannelId: document.getElementById('discordChannelId'),
+  webhookUrl: document.getElementById('webhookUrl'),
   fetchIntervalSeconds: document.getElementById('fetchIntervalSeconds'),
   maxNewsPerCycle: document.getElementById('maxNewsPerCycle'),
   rateLimitMs: document.getElementById('rateLimitMs'),
@@ -38,6 +40,7 @@ const el = {
 const THEME_KEY = 'vartha_dashboard_theme';
 let settingsDirty = false;
 let settingsSaving = false;
+let currentGuildId = 'GLOBAL';
 
 function getPreferredTheme() {
   const saved = localStorage.getItem(THEME_KEY);
@@ -75,7 +78,10 @@ function initTheme() {
 }
 
 async function request(path, options = {}) {
-  const res = await fetch(`/api${path}`, {
+  const separator = path.includes('?') ? '&' : '?';
+  const fullPath = `${path}${separator}guildId=${currentGuildId}`;
+
+  const res = await fetch(`/api${fullPath}`, {
     headers: { 'Content-Type': 'application/json' },
     ...options
   });
@@ -179,8 +185,8 @@ function renderStatus(status, stats = {}) {
   el.botStatus.classList.toggle('online', status.botOnline);
   el.botStatus.classList.toggle('offline', !status.botOnline);
   const started = status.startedAt ? new Date(status.startedAt).toLocaleString() : '-';
-  el.uptime.textContent = `Started: ${started}`;
-  const lastFetch = status.lastFetchAt ? new Date(status.lastFetchAt).toLocaleString() : '-';
+  el.uptime.textContent = `Started: ${started} • ${status.guildCount || 0} Servers Connected`;
+  const lastFetch = status.lastFetchAt && status.lastFetchAt > 0 ? new Date(status.lastFetchAt).toLocaleString() : 'Never';
   el.lastFetch.textContent = lastFetch;
   el.activeFeedsCount.textContent = String(stats.activeFeeds || 0);
   el.newsCount.textContent = String(stats.newsCount || 0);
@@ -202,6 +208,7 @@ function renderSettings(settings) {
 
   el.postMode.value = settings.postMode || 'hybrid';
   el.discordChannelId.value = settings.discordChannelId || '';
+  el.webhookUrl.value = settings.webhookUrl || '';
   el.fetchIntervalSeconds.value = settings.fetchIntervalSeconds || 1800;
   el.maxNewsPerCycle.value = settings.maxNewsPerCycle || 5;
   el.rateLimitMs.value = settings.rateLimitMs || 1200;
@@ -216,6 +223,19 @@ function renderSettings(settings) {
   el.enableButtons.checked = settings.enableButtons !== false;
   el.footerBrandingText.value = settings.footerBrandingText || 'Powered by വാർത്ത ബോട്ട്';
   el.fallbackImageUrl.value = settings.fallbackImageUrl || '';
+}
+
+async function renderGuilds() {
+  try {
+    const { guilds } = await request('/guilds');
+    const current = el.guildIdSelect.value;
+
+    el.guildIdSelect.innerHTML = guilds
+      .map((g) => `<option value="${g.id}" ${g.id === current ? 'selected' : ''}>${escapeHtml(g.name)}</option>`)
+      .join('');
+  } catch (error) {
+    console.error('Failed to load guilds', error);
+  }
 }
 
 async function refreshAll() {
@@ -249,6 +269,12 @@ function initSettingsDirtyTracking() {
   });
 }
 
+el.guildIdSelect.addEventListener('change', (event) => {
+  currentGuildId = event.target.value;
+  settingsDirty = false;
+  refreshAll().catch(console.error);
+});
+
 el.fetchNowBtn.addEventListener('click', async () => {
   el.fetchNowBtn.disabled = true;
   el.fetchNowBtn.textContent = 'Fetching...';
@@ -256,7 +282,7 @@ el.fetchNowBtn.addEventListener('click', async () => {
   try {
     const response = await request('/fetch', { method: 'POST' });
     if (response?.result?.reason === 'delivery_disabled') {
-      alert('Start News Delivery first from dashboard.');
+      alert('Start News Delivery first for this server.');
     } else if (Number(response?.result?.sent || 0) === 0) {
       await request('/send-latest', {
         method: 'POST',
@@ -310,7 +336,7 @@ el.sendLatestBtn.addEventListener('click', async () => {
       body: JSON.stringify({ count: 1 })
     });
     if (response?.result?.reason === 'delivery_disabled') {
-      alert('Start News Delivery first from dashboard.');
+      alert('Start News Delivery first for this server.');
     }
     await refreshAll();
   } catch (error) {
@@ -391,6 +417,7 @@ el.settingsForm.addEventListener('submit', async (event) => {
   const payload = {
     postMode: el.postMode.value,
     discordChannelId: el.discordChannelId.value.trim(),
+    webhookUrl: el.webhookUrl.value.trim(),
     fetchIntervalSeconds: Number(el.fetchIntervalSeconds.value || 1800),
     maxNewsPerCycle: Number(el.maxNewsPerCycle.value || 5),
     rateLimitMs: Number(el.rateLimitMs.value || 1200),
@@ -425,10 +452,16 @@ el.settingsForm.addEventListener('submit', async (event) => {
 initTheme();
 initSettingsDirtyTracking();
 
-refreshAll().catch((error) => {
+async function startup() {
+  await renderGuilds();
+  await refreshAll();
+}
+
+startup().catch((error) => {
   console.error(error);
 });
 
 setInterval(() => {
+  renderGuilds().catch(() => {});
   refreshAll().catch(() => {});
 }, 10000);

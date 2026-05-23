@@ -29,30 +29,37 @@ function createHashFromItem(item) {
   return crypto.createHash('sha1').update(key).digest('hex');
 }
 
-function getSeen() {
-  const data = readJson(FILE_NAME, { items: [] });
-  if (!Array.isArray(data.items)) {
-    return [];
+function getSeen(guildId = 'GLOBAL') {
+  const data = readJson(FILE_NAME, {});
+  if (Array.isArray(data.items)) {
+    return guildId === 'GLOBAL' ? data.items : [];
   }
-  return data.items.filter((item) => /^[a-f0-9]{40}$/i.test(String(item)));
+  const items = data[guildId]?.items || [];
+  return items.filter((item) => /^[a-f0-9]{40}$/i.test(String(item)));
 }
 
-function has(item) {
+function has(item, guildId = 'GLOBAL') {
   const hash = createHashFromItem(item);
   if (!hash) {
     return false;
   }
-  return getSeen().includes(hash);
+  return getSeen(guildId).includes(hash);
 }
 
-function addMany(items) {
-  const current = getSeen();
+function addMany(items, guildId = 'GLOBAL') {
+  let allData = readJson(FILE_NAME, {});
+  if (Array.isArray(allData.items)) {
+    allData = { GLOBAL: allData };
+  }
+
+  const current = getSeen(guildId);
   const additions = items.map(createHashFromItem).filter(Boolean);
 
   const merged = [...additions, ...current];
   const deduped = [...new Set(merged)].slice(0, MAX_ITEMS);
 
-  writeJson(FILE_NAME, { items: deduped });
+  allData[guildId] = { items: deduped };
+  writeJson(FILE_NAME, allData);
 }
 
 module.exports = {

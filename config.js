@@ -14,6 +14,7 @@ const defaults = {
     feedFetchDelayMs: 500,
     deliveryEnabled: false,
     discordChannelId: '',
+    webhookUrl: '',
     includeKeywords: [],
     excludeKeywords: [],
     botEnabled: true,

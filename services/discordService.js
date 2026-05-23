@@ -13,11 +13,12 @@ function buildMessage(item, settings, options = {}) {
 }
 
 async function sendViaWebhook(item, settings) {
-  if (!env.WEBHOOK_URL) {
-    throw new Error('WEBHOOK_URL not configured');
+  const url = settings.webhookUrl;
+  if (!url) {
+    throw new Error('Webhook URL not configured for this guild');
   }
 
-  const webhook = new WebhookClient({ url: env.WEBHOOK_URL });
+  const webhook = new WebhookClient({ url });
   await webhook.send(buildMessage(item, settings, { enableInteractive: false }));
   return 'webhook';
 }

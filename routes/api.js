@@ -1,6 +1,6 @@
 const express = require('express');
 const { getNewsCache } = require('../services/rssService');
-const { getFeeds, setFeeds, getSettings, setSettings } = require('../services/runtimeService');
+const { getFeeds, setFeeds, getSettings, setSettings, getAllGuildIds } = require('../services/runtimeService');
 const logger = require('../utils/logger');
 
 function createApiRouter(context) {
@@ -34,13 +34,28 @@ function createApiRouter(context) {
     return next;
   }
 
+  router.get('/guilds', (_req, res) => {
+    const ids = ['GLOBAL', ...getAllGuildIds()];
+    const guilds = ids.map((id) => {
+      const settings = getSettings(id);
+      return {
+        id,
+        name: id === 'GLOBAL' ? 'System Defaults' : (settings.guildName || `Server ${id}`),
+        deliveryEnabled: settings.deliveryEnabled !== false,
+        channelId: settings.discordChannelId || ''
+      };
+    });
+    res.json({ guilds });
+  });
+
   router.get('/news', (_req, res) => {
     res.json({ items: getNewsCache().slice(0, 50) });
   });
 
-  router.post('/fetch', async (_req, res) => {
+  router.post('/fetch', async (req, res) => {
     try {
-      const result = await context.manualFetch('dashboard');
+      const guildId = req.query.guildId || 'GLOBAL';
+      const result = await context.manualFetch('dashboard', { guildId });
       res.json({ ok: true, result });
     } catch (error) {
       logger.error('Manual fetch failed', { error: error.message });
@@ -50,8 +65,9 @@ function createApiRouter(context) {
 
   router.post('/send-latest', async (req, res) => {
     try {
+      const guildId = req.query.guildId || 'GLOBAL';
       const count = Number(req.body?.count || 1);
-      const result = await context.sendLatest(Math.min(Math.max(count, 1), 5));
+      const result = await context.sendLatest(Math.min(Math.max(count, 1), 5), guildId);
       res.json({ ok: true, result });
     } catch (error) {
       logger.error('Send latest failed', { error: error.message });
@@ -59,9 +75,10 @@ function createApiRouter(context) {
     }
   });
 
-  router.post('/delivery/start', async (_req, res) => {
+  router.post('/delivery/start', async (req, res) => {
     try {
-      const result = await context.startDelivery();
+      const guildId = req.query.guildId || 'GLOBAL';
+      const result = await context.startDelivery(guildId);
       res.json({ ok: true, result });
     } catch (error) {
       logger.error('Failed to start delivery', { error: error.message });
@@ -69,9 +86,10 @@ function createApiRouter(context) {
     }
   });
 
-  router.post('/delivery/stop', async (_req, res) => {
+  router.post('/delivery/stop', async (req, res) => {
     try {
-      const result = await context.stopDelivery();
+      const guildId = req.query.guildId || 'GLOBAL';
+      const result = await context.stopDelivery(guildId);
       res.json({ ok: true, result });
     } catch (error) {
       logger.error('Failed to stop delivery', { error: error.message });
@@ -79,17 +97,19 @@ function createApiRouter(context) {
     }
   });
 
-  router.get('/feeds', (_req, res) => {
-    res.json({ items: getFeeds() });
+  router.get('/feeds', (req, res) => {
+    const guildId = req.query.guildId || 'GLOBAL';
+    res.json({ items: getFeeds(guildId) });
   });
 
   router.post('/feeds', (req, res) => {
+    const guildId = req.query.guildId || 'GLOBAL';
     const body = req.body || {};
     if (!body.name || !body.url) {
       return res.status(400).json({ ok: false, error: 'name and url are required' });
     }
 
-    const feeds = getFeeds();
+    const feeds = getFeeds(guildId);
     const id = String(body.id || body.name)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -107,12 +127,13 @@ function createApiRouter(context) {
     };
 
     feeds.push(entry);
-    setFeeds(feeds);
+    setFeeds(feeds, guildId);
     return res.status(201).json({ ok: true, item: entry });
   });
 
   router.patch('/feeds/:id', (req, res) => {
-    const feeds = getFeeds();
+    const guildId = req.query.guildId || 'GLOBAL';
+    const feeds = getFeeds(guildId);
     const idx = feeds.findIndex((f) => f.id === req.params.id);
 
     if (idx === -1) {
@@ -126,34 +147,37 @@ function createApiRouter(context) {
     };
 
     feeds[idx] = merged;
-    setFeeds(feeds);
+    setFeeds(feeds, guildId);
     return res.json({ ok: true, item: merged });
   });
 
   router.delete('/feeds/:id', (req, res) => {
-    const feeds = getFeeds();
+    const guildId = req.query.guildId || 'GLOBAL';
+    const feeds = getFeeds(guildId);
     const filtered = feeds.filter((f) => f.id !== req.params.id);
     if (filtered.length === feeds.length) {
       return res.status(404).json({ ok: false, error: 'feed not found' });
     }
 
-    setFeeds(filtered);
+    setFeeds(filtered, guildId);
     return res.json({ ok: true });
   });
 
-  router.get('/settings', (_req, res) => {
-    res.json({ item: getSettings() });
+  router.get('/settings', (req, res) => {
+    const guildId = req.query.guildId || 'GLOBAL';
+    res.json({ item: getSettings(guildId) });
   });
 
   router.post('/settings', (req, res) => {
-    const current = getSettings();
+    const guildId = req.query.guildId || 'GLOBAL';
+    const current = getSettings(guildId);
     const incoming = sanitizeSettingsInput(req.body || {});
     const next = {
       ...current,
       ...incoming
     };
 
-    setSettings(next);
+    setSettings(next, guildId);
     return res.json({ ok: true, item: next });
   });
 
@@ -162,14 +186,19 @@ function createApiRouter(context) {
     res.json({ items: logger.getRecent(Math.min(Math.max(limit, 1), 300)) });
   });
 
-  router.get('/status', (_req, res) => {
+  router.get('/status', (req, res) => {
+    const guildId = req.query.guildId || 'GLOBAL';
     const botClient = context.getClient();
-    const settings = getSettings();
+    const settings = getSettings(guildId);
+    const allGuilds = getAllGuildIds();
+
     res.json({
       botOnline: Boolean(botClient?.isReady?.()),
       startedAt: context.startedAt,
-      lastFetchAt: context.getLastRunAt ? context.getLastRunAt() : 0,
-      deliveryEnabled: settings.deliveryEnabled !== false
+      lastFetchAt: context.getLastRunAt ? context.getLastRunAt(guildId) : 0,
+      deliveryEnabled: settings.deliveryEnabled !== false,
+      guildCount: allGuilds.length,
+      activeGuildId: guildId
     });
   });
 

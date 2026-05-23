@@ -7,14 +7,16 @@ const { sortByPriority } = require('./presentationService');
 const logger = require('../utils/logger');
 
 async function runFetchCycle(context, opts = {}) {
-  const settings = getSettings();
-  const feeds = getFeeds();
+  const guildId = opts.guildId || 'GLOBAL';
+  const settings = getSettings(guildId);
+  const feeds = getFeeds(guildId);
   const reason = opts.reason || 'scheduled';
 
   if (!settings.botEnabled && !opts.force) {
-    logger.info('Fetch skipped: bot is disabled', { reason });
+    logger.info('Fetch skipped: bot is disabled', { reason, guildId });
     return {
       reason,
+      guildId,
       fetched: 0,
       filtered: 0,
       newItems: 0,
@@ -32,9 +34,9 @@ async function runFetchCycle(context, opts = {}) {
 
   const filtered = prioritized.filter((item) => isAllowed(item, settings));
   const fresh = filtered.filter((item) => {
-    const duplicate = dedupService.has(item);
+    const duplicate = dedupService.has(item, guildId);
     if (duplicate) {
-      logger.debug('Duplicate skipped', { title: item.title, source: item.source });
+      logger.debug('Duplicate skipped', { title: item.title, source: item.source, guildId });
     }
     return !duplicate;
   });
@@ -45,7 +47,7 @@ async function runFetchCycle(context, opts = {}) {
   let sentCount = 0;
 
   if (batch.length > 0 && shouldDispatch) {
-    dedupService.addMany(batch);
+    dedupService.addMany(batch, guildId);
     discordService.enqueueNews(batch, {
       settings,
       client: context.getClient()
@@ -56,12 +58,14 @@ async function runFetchCycle(context, opts = {}) {
   if (batch.length > 0 && !shouldDispatch) {
     logger.info('Delivery disabled: fetched items are cached but not sent', {
       reason,
+      guildId,
       batch: batch.length
     });
   }
 
   logger.info('Fetch cycle completed', {
     reason,
+    guildId,
     fetched: fetched.length,
     filtered: filtered.length,
     duplicatesSkipped: filtered.length - fresh.length,
@@ -71,6 +75,7 @@ async function runFetchCycle(context, opts = {}) {
 
   return {
     reason,
+    guildId,
     fetched: fetched.length,
     filtered: filtered.length,
     newItems: fresh.length,
