@@ -5,9 +5,9 @@ function getFeeds(guildId = 'GLOBAL') {
   const allFeeds = readJson('feeds.json', {});
   // Migration: if it's an array, it's the old format
   if (Array.isArray(allFeeds)) {
-    return guildId === 'GLOBAL' ? allFeeds : [];
+    return allFeeds;
   }
-  const feeds = allFeeds[guildId] || (guildId === 'GLOBAL' ? defaults.feeds : []);
+  const feeds = allFeeds[guildId] || allFeeds['GLOBAL'] || defaults.feeds;
   return Array.isArray(feeds) ? feeds : [];
 }
 
@@ -24,11 +24,10 @@ function getSettings(guildId = 'GLOBAL') {
   const allSettings = readJson('settings.json', {});
   // Migration: if it has postMode, it's the old format
   if (allSettings && !allSettings.GLOBAL && allSettings.postMode) {
-    const merged = { ...defaults.settings, ...allSettings };
-    return guildId === 'GLOBAL' ? merged : { ...defaults.settings };
+    return { ...defaults.settings, ...allSettings };
   }
 
-  const settings = allSettings[guildId] || (guildId === 'GLOBAL' ? defaults.settings : {});
+  const settings = allSettings[guildId] || allSettings['GLOBAL'] || {};
   return {
     ...defaults.settings,
     ...settings
