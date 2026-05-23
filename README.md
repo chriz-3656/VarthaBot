@@ -43,9 +43,10 @@ This project fetches RSS news, processes and prioritizes content, and publishes 
 - **Dedicated Setup**: `/setup` command to lock news to a specific channel.
 - **Premium Discord embeds** with image support and branding.
 - **Category tagging** (Breaking, Politics, Kerala, Tech, General).
-- **Global Monitor Dashboard**: Manage all connected servers from one interface.
+- **Global Monitor Dashboard**: Manage all connected servers and view live system logs from one interface.
 - **Hybrid failover delivery**: Primary bot delivery with automatic per-guild webhook fallback.
-- **Last-200 duplicate prevention** isolated per guild.
+- **Robust Admin Detection**: Triple-layer permission check (Owner, Administrator, and Manage Server).
+- **Redundant Queue Isolation**: Per-guild delivery context ensures zero data leakage between servers.
 - **Interaction-safe** handling (`deferReply`) to avoid Discord timeouts.
 
 ## Multi-Server Architecture
@@ -144,7 +145,8 @@ URL: `http://localhost:3000/dashboard`
 ## Security Notes
 
 - **Secret Protection**: `.env` and `data/*.json` are ignored by Git.
-- **Admin Gated**: `/setup` and `/reload` require `Manage Server` permissions.
+- **Admin Gated**: `/setup` and `/reload` require robust permission checks. The bot automatically detects Server Owners and users with the `Administrator` or `Manage Server` permissions.
+- **Expanded Intents**: Uses `GuildMembers` and `Guilds` intents for accurate permission calculation.
 - **Rate Limiting**: Built-in queue system prevents Discord API spam.
 
 ## Developer Details
