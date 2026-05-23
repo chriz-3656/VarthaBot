@@ -45,8 +45,9 @@ function setSettings(settings, guildId = 'GLOBAL') {
 
 function getAllGuildIds() {
   const allSettings = readJson('settings.json', {});
+  // Migration: if it has postMode, it's the old format (no individual guilds yet)
   if (allSettings && !allSettings.GLOBAL && allSettings.postMode) {
-    return ['GLOBAL'];
+    return [];
   }
   return Object.keys(allSettings).filter((id) => id !== 'GLOBAL');
 }
