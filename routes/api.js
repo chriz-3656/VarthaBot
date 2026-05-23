@@ -35,12 +35,25 @@ function createApiRouter(context) {
   }
 
   router.get('/guilds', (_req, res) => {
-    const ids = ['GLOBAL', ...getAllGuildIds()];
-    const guilds = ids.map((id) => {
+    const client = context.getClient();
+    const storedIds = getAllGuildIds();
+    const liveIds = client?.guilds?.cache?.map((g) => g.id) || [];
+
+    // Unique combined list
+    const allIds = [...new Set(['GLOBAL', ...storedIds, ...liveIds])];
+
+    const guilds = allIds.map((id) => {
       const settings = getSettings(id);
+      let name = id === 'GLOBAL' ? 'System Defaults' : (settings.guildName || `Server ${id}`);
+
+      // Try to get fresh name from client if possible
+      if (id !== 'GLOBAL' && client?.guilds?.cache?.has(id)) {
+        name = client.guilds.cache.get(id).name;
+      }
+
       return {
         id,
-        name: id === 'GLOBAL' ? 'System Defaults' : (settings.guildName || `Server ${id}`),
+        name,
         deliveryEnabled: settings.deliveryEnabled !== false,
         channelId: settings.discordChannelId || ''
       };
