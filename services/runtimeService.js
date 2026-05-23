@@ -173,7 +173,12 @@ async function syncGuildData(guild) {
     .upsert(payload, { onConflict: 'guild_id' });
   
   if (error) {
-    logger.error('Error syncing guild data to Supabase', { error: error.message, guildId: guild.id });
+    logger.error('Error syncing guild data to Supabase', { 
+      error: error.message, 
+      code: error.code,
+      details: error.details,
+      guildId: guild.id 
+    });
   }
 }
 
