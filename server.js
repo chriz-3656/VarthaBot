@@ -15,16 +15,46 @@ const { enqueueNews } = require('./services/discordService');
 const supabase = require('./services/supabaseClient');
 
 const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
+
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*' } });
 
 // --- Auth Setup ---
-app.use(session({
+const sessionMiddleware = session({
   secret: env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: { secure: false } // Set to true in prod with HTTPS
-}));
+});
+
+app.use(sessionMiddleware);
+io.engine.use(sessionMiddleware);
+
 app.use(passport.initialize());
 app.use(passport.session());
+
+io.use((socket, next) => {
+  if (env.DISCORD_CLIENT_SECRET && !socket.request.session?.passport?.user) {
+    return next(new Error('Unauthorized'));
+  }
+  next();
+});
+
+io.on('connection', (socket) => {
+  socket.on('subscribe_logs', (guildId) => {
+    socket.join(`logs_${guildId}`);
+  });
+});
+
+logger.events.on('log', (entry) => {
+  const guildId = entry.meta?.guildId || 'GLOBAL';
+  io.to(`logs_${guildId}`).emit('new_log', entry);
+  if (guildId !== 'GLOBAL') {
+    io.to('logs_GLOBAL').emit('new_log', entry);
+  }
+});
 
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((obj, done) => done(null, obj));
@@ -54,7 +84,7 @@ if (env.DISCORD_CLIENT_SECRET && env.DISCORD_CALLBACK_URL) {
 
   app.get('/auth/discord', passport.authenticate('discord'));
   app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => {
-      res.redirect('/dashboard/'); // Success
+      res.redirect('/dashboard/');
   });
   app.get('/auth/logout', (req, res, next) => {
       req.logout((err) => {
@@ -190,14 +220,12 @@ app.get('/', (_req, res) => {
 });
 
 app.get('/api/me', requireAuth, (req, res) => {
-  // Provide user info and guilds where they are admin
   res.json({
     user: {
       id: req.user?.id,
       username: req.user?.username,
       avatar: req.user?.avatar
     },
-    // Filter to guilds where user is owner, administrator, or manage server
     guilds: req.user?.guilds?.filter(g => (g.permissions & 0x8) === 0x8 || (g.permissions & 0x20) === 0x20 || g.owner) || []
   });
 });
@@ -227,36 +255,6 @@ cron.schedule('* * * * *', async () => {
 
     const intervalMs = Math.max(60, Number(settings.fetchIntervalSeconds || 1800)) * 1000;
     const lastRun = state.lastRunAt[guildId] || 0;
-
-    if (lastRun > 0 && now - lastRun < intervalMs) {
-      continue;
-    }
-
-    await guardedFetch('cron', { guildId });
-  }
-});
-
-initBot({
-  onReload: async (guildId) => {
-    logger.info('Reload requested from slash command', { guildId });
-  },
-  onNewsRequest: async (guildId) => {
-    return guardedFetch('slash-news', { force: true, dispatchToDiscord: false, guildId });
-  },
-  onDeliveryStart: async (guildId) => startDelivery(guildId),
-  onDeliveryStop: async (guildId) => stopDelivery(guildId),
-  getRuntimeInfo: async (guildId) => {
-    const settings = await getSettings(guildId || 'GLOBAL');
-    return {
-      startedAt: state.startedAt,
-      lastFetchAt: state.lastRunAt[guildId || 'GLOBAL'] || 0,
-      settings
-    };
-  }
-}).catch((error) => {
-  logger.error('Bot startup failed', { error: error.message });
-});
-Run = state.lastRunAt[guildId] || 0;
 
     if (lastRun > 0 && now - lastRun < intervalMs) {
       continue;
