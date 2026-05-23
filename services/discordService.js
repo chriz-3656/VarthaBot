@@ -28,13 +28,26 @@ async function sendViaBot(item, client, channelId, settings) {
     throw new Error('Bot client or channelId missing');
   }
 
-  const channel = await client.channels.fetch(channelId);
+  const channel = await client.channels.fetch(channelId).catch((error) => {
+    logger.error('Failed to fetch channel', { channelId, error: error.message });
+    throw error;
+  });
+
   if (!channel || !channel.isTextBased()) {
     throw new Error(`Invalid or inaccessible channel: ${channelId}`);
   }
 
-  await channel.send(buildMessage(item, settings, { enableInteractive: true }));
-  return 'bot';
+  try {
+    await channel.send(buildMessage(item, settings, { enableInteractive: true }));
+    return 'bot';
+  } catch (error) {
+    logger.error('Bot send failed', {
+      channelId,
+      error: error.message,
+      code: error.code
+    });
+    throw error;
+  }
 }
 
 async function sendNewsWithFailover(item, context) {
