@@ -175,13 +175,24 @@ async function initBot(options = {}) {
   await registerSlashCommands();
 
   client = new Client({
-    intents: [GatewayIntentBits.Guilds]
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
   });
 
   client.once('clientReady', () => {
     logger.info(`Discord bot online as ${client.user.tag}`);
     startPresenceRotation(options);
   });
+
+  const isGuildAdmin = (interaction) => {
+    if (!interaction.inGuild()) return false;
+    // 1. Is Owner?
+    if (interaction.guild?.ownerId === interaction.user.id) return true;
+    // 2. Administrator?
+    if (interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) return true;
+    // 3. Manage Guild?
+    if (interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) return true;
+    return false;
+  };
 
   client.on('interactionCreate', async (interaction) => {
     const guildId = interaction.guildId || 'GLOBAL';
@@ -225,6 +236,11 @@ async function initBot(options = {}) {
       if (interaction.commandName === 'setup') {
         if (!interaction.inGuild()) {
           await interaction.reply({ content: '/setup can only be used inside a server.', ephemeral: false });
+          return;
+        }
+
+        if (!isGuildAdmin(interaction)) {
+          await interaction.reply({ content: 'Admin permission required (Manage Server or Administrator).', ephemeral: true });
           return;
         }
 
@@ -337,8 +353,8 @@ async function initBot(options = {}) {
         const count = Math.max(1, Math.min(100, requested));
 
         if (interaction.inGuild()) {
-          const canManageMessages = interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages);
-          if (!canManageMessages) {
+          const hasPerm = isGuildAdmin(interaction) || interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages);
+          if (!hasPerm) {
             await interaction.reply({ content: 'Manage Messages permission required.', ephemeral: true });
             return;
           }
@@ -386,8 +402,7 @@ async function initBot(options = {}) {
           return;
         }
 
-        const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
-        if (!isAdmin) {
+        if (!isGuildAdmin(interaction)) {
           await interaction.reply({ content: 'Admin permission required.', ephemeral: true });
           return;
         }
