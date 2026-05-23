@@ -12,7 +12,7 @@ const { env } = require('./config');
 const logger = require('./utils/logger');
 const { getNewsCache } = require('./services/rssService');
 const { buildDiscordMessage } = require('./services/presentationService');
-const { getSettings, setSettings } = require('./services/runtimeService');
+const { getSettings, setSettings, syncGuildData } = require('./services/runtimeService');
 
 const guildCommands = [
   new SlashCommandBuilder()
@@ -74,66 +74,27 @@ const globalCommands = [
 ].map((c) => c.toJSON());
 
 let client = null;
-let presenceTimer = null;
-
-function buildPresenceEntries(options = {}) {
-  const runtime = typeof options.getRuntimeInfo === 'function' ? options.getRuntimeInfo() : {};
-  const settings = runtime?.settings || {};
-  const interval = Number(settings.fetchIntervalSeconds || 1800);
-  const delivery = settings.deliveryEnabled === false ? 'Delivery Locked' : 'Delivery Active';
-
-  return [
-    { name: 'Malayalam News Live', type: ActivityType.Watching },
-    { name: `${delivery}`, type: ActivityType.Playing },
-    { name: `Fetch every ${interval}s`, type: ActivityType.Watching },
-    { name: '/commands • /news • /clear', type: ActivityType.Listening }
-  ];
-}
-
-function startPresenceRotation(options = {}) {
-  if (!client?.user) {
-    return;
-  }
-
-  if (presenceTimer) {
-    clearInterval(presenceTimer);
-    presenceTimer = null;
-  }
-
-  let index = 0;
-  const applyPresence = () => {
-    const activities = buildPresenceEntries(options);
-    const next = activities[index % activities.length];
-    index += 1;
-
-    client.user.setPresence({
-      status: 'online',
-      activities: [next]
-    });
-  };
-
-  applyPresence();
-  presenceTimer = setInterval(applyPresence, 60_000);
-}
 
 async function registerSlashCommands() {
-  if (!env.DISCORD_TOKEN || !env.CLIENT_ID) {
-    logger.warn('Skipping slash command registration; missing DISCORD_TOKEN/CLIENT_ID');
-    return;
-  }
-
   const rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
-  await rest.put(Routes.applicationCommands(env.CLIENT_ID), { body: globalCommands });
-  logger.info('Global slash commands registered (DM support enabled)');
 
-  if (env.GUILD_ID) {
-    await rest.put(Routes.applicationGuildCommands(env.CLIENT_ID, env.GUILD_ID), { body: guildCommands });
-    logger.info('Guild slash commands registered');
+  try {
+    logger.info('Started refreshing slash commands');
+
+    await rest.put(Routes.applicationCommands(env.CLIENT_ID), { body: globalCommands });
+    logger.info('Global slash commands registered (DM support enabled)');
+
+    if (env.GUILD_ID) {
+      await rest.put(Routes.applicationGuildCommands(env.CLIENT_ID, env.GUILD_ID), { body: guildCommands });
+      logger.info('Guild slash commands registered');
+    }
+  } catch (error) {
+    logger.error('Failed to register slash commands', { error: error.message });
   }
 }
 
-function buildNewsPayload(items, interactive, guildId = 'GLOBAL') {
-  const settings = getSettings(guildId);
+async function buildNewsPayload(items, interactive, guildId = 'GLOBAL') {
+  const settings = await getSettings(guildId);
   const embeds = [];
   for (const item of items.slice(0, 5)) {
     const payload = buildDiscordMessage(item, settings, { enableInteractive: interactive });
@@ -166,6 +127,20 @@ function formatRuntimeInfo(runtime) {
   };
 }
 
+function startPresenceRotation(options) {
+  const activities = [
+    { name: 'Malayalam News', type: ActivityType.Watching },
+    { name: '/news for latest updates', type: ActivityType.Listening },
+    { name: 'Premium News Delivery', type: ActivityType.Playing }
+  ];
+
+  let i = 0;
+  setInterval(() => {
+    client.user.setActivity(activities[i]);
+    i = (i + 1) % activities.length;
+  }, 30000);
+}
+
 async function initBot(options = {}) {
   if (!env.DISCORD_TOKEN) {
     logger.warn('DISCORD_TOKEN missing: bot client will not start');
@@ -193,7 +168,6 @@ async function initBot(options = {}) {
 
   client.on('guildDelete', async (guild) => {
     logger.info('Bot removed from a guild', { guildId: guild.id, guildName: guild.name });
-    // Optional: mark as inactive in Supabase
   });
 
   const isGuildAdmin = (interaction) => {
@@ -227,7 +201,7 @@ async function initBot(options = {}) {
             return;
           }
 
-          const payload = buildNewsPayload(latest.slice(0, 1), true, guildId);
+          const payload = await buildNewsPayload(latest.slice(0, 1), true, guildId);
           await interaction.editReply({
             content: 'Latest news refreshed:',
             ...payload
@@ -260,7 +234,7 @@ async function initBot(options = {}) {
           return;
         }
 
-        const current = getSettings(guildId);
+        const current = await getSettings(guildId);
         const next = {
           ...current,
           guildName: interaction.guild.name,
@@ -268,7 +242,7 @@ async function initBot(options = {}) {
           deliveryEnabled: true
         };
 
-        setSettings(next, guildId);
+        await setSettings(next, guildId);
         await interaction.reply({
           content: `✅ News delivery channel configured: ${channel}. Delivery is now enabled for this server.`,
           ephemeral: true
@@ -450,18 +424,6 @@ if (require.main === module) {
     });
   } else {
     initBot().catch((error) => {
-      console.error(error);
-      process.exit(1);
-    });
-  }
-}
-
-module.exports = {
-  initBot,
-  getClient,
-  registerSlashCommands
-};
-itBot().catch((error) => {
       console.error(error);
       process.exit(1);
     });
