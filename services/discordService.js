@@ -126,7 +126,7 @@ async function dispatchNewsItem(item, context) {
   return 'skipped';
 }
 
-async function processQueue(context) {
+async function processQueue() {
   if (processing) {
     return;
   }
@@ -135,9 +135,9 @@ async function processQueue(context) {
 
   try {
     while (queue.length > 0) {
-      const item = queue.shift();
+      const { item, context } = queue.shift();
       const method = await dispatchNewsItem(item, context);
-      logger.info('News delivery completed', { method });
+      logger.info('News delivery completed', { method, guildId: context.settings.guildId || 'unknown' });
       const delay = Number(context.settings.rateLimitMs || 1200);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
@@ -149,8 +149,9 @@ async function processQueue(context) {
 }
 
 function enqueueNews(items, context) {
-  queue.push(...items);
-  processQueue(context);
+  const additions = items.map((item) => ({ item, context }));
+  queue.push(...additions);
+  processQueue();
 }
 
 module.exports = {

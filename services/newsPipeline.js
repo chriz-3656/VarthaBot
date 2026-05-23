@@ -49,7 +49,7 @@ async function runFetchCycle(context, opts = {}) {
   if (batch.length > 0 && shouldDispatch) {
     dedupService.addMany(batch, guildId);
     discordService.enqueueNews(batch, {
-      settings,
+      settings: { ...settings, guildId },
       client: context.getClient()
     });
     sentCount = batch.length;
