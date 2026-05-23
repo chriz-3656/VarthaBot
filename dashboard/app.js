@@ -275,95 +275,107 @@ async function refreshGuildData() {
 }
 
 // --- Event Listeners ---
-el.addFeedForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  try {
-    await request('/feeds', {
-      method: 'POST',
-      body: JSON.stringify({ name: el.feedName.value, url: el.feedUrl.value })
-    });
-    el.addFeedForm.reset();
-    refreshGuildData();
-  } catch (error) {
-    alert(error.message);
-  }
-});
-
-el.feedList.addEventListener('click', async (e) => {
-  if (e.target.tagName !== 'BUTTON') return;
-  const id = e.target.dataset.id;
-  const action = e.target.dataset.action;
-
-  try {
-    if (action === 'remove') {
-      await request(`/feeds/${id}`, { method: 'DELETE' });
-    } else if (action === 'toggle') {
-      const isDisable = e.target.textContent === 'Disable';
-      await request(`/feeds/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ enabled: !isDisable })
+if (el.addFeedForm) {
+  el.addFeedForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await request('/feeds', {
+        method: 'POST',
+        body: JSON.stringify({ name: el.feedName.value, url: el.feedUrl.value })
       });
+      el.addFeedForm.reset();
+      refreshGuildData();
+    } catch (error) {
+      alert(error.message);
     }
-    refreshGuildData();
-  } catch (error) {
-    alert(error.message);
-  }
-});
+  });
+}
 
-el.settingsForm.addEventListener('input', () => settingsDirty = true);
-el.settingsForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const payload = {
-    discordChannelId: el.discordChannelId.value.trim(),
-    webhookUrl: el.webhookUrl.value.trim(),
-    fetchIntervalSeconds: Number(el.fetchIntervalSeconds.value || 1800),
-    includeKeywords: el.includeKeywords.value
-  };
+if (el.feedList) {
+  el.feedList.addEventListener('click', async (e) => {
+    if (e.target.tagName !== 'BUTTON') return;
+    const id = e.target.dataset.id;
+    const action = e.target.dataset.action;
 
-  try {
-    await request('/settings', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-    settingsDirty = false;
-    alert('Settings saved successfully.');
-    refreshGuildData();
-  } catch (error) {
-    alert(error.message);
-  }
-});
+    try {
+      if (action === 'remove') {
+        await request(`/feeds/${id}`, { method: 'DELETE' });
+      } else if (action === 'toggle') {
+        const isDisable = e.target.textContent === 'Disable';
+        await request(`/feeds/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ enabled: !isDisable })
+        });
+      }
+      refreshGuildData();
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+}
 
-el.btnStartDelivery.addEventListener('click', async () => {
-  try {
-    await request('/delivery/start', { method: 'POST' });
-    refreshGuildData();
-  } catch (error) {
-    alert(error.message);
-  }
-});
+if (el.settingsForm) {
+  el.settingsForm.addEventListener('input', () => settingsDirty = true);
+  el.settingsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+      discordChannelId: el.discordChannelId.value.trim(),
+      webhookUrl: el.webhookUrl.value.trim(),
+      fetchIntervalSeconds: Number(el.fetchIntervalSeconds.value || 1800),
+      includeKeywords: el.includeKeywords.value
+    };
 
-el.btnStopDelivery.addEventListener('click', async () => {
-  try {
-    await request('/delivery/stop', { method: 'POST' });
-    refreshGuildData();
-  } catch (error) {
-    alert(error.message);
-  }
-});
+    try {
+      await request('/settings', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      settingsDirty = false;
+      alert('Settings saved successfully.');
+      refreshGuildData();
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+}
 
-el.btnFetchNow.addEventListener('click', async () => {
-  el.btnFetchNow.disabled = true;
-  el.btnFetchNow.textContent = 'Fetching...';
-  try {
-    await request('/fetch', { method: 'POST' });
-    refreshGuildData();
-  } catch (error) {
-    alert(error.message);
-  } finally {
-    el.btnFetchNow.disabled = false;
-    el.btnFetchNow.textContent = 'Fetch Now';
-  }
-});
+if (el.btnStartDelivery) {
+  el.btnStartDelivery.addEventListener('click', async () => {
+    try {
+      await request('/delivery/start', { method: 'POST' });
+      refreshGuildData();
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+}
+
+if (el.btnStopDelivery) {
+  el.btnStopDelivery.addEventListener('click', async () => {
+    try {
+      await request('/delivery/stop', { method: 'POST' });
+      refreshGuildData();
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+}
+
+if (el.btnFetchNow) {
+  el.btnFetchNow.addEventListener('click', async () => {
+    el.btnFetchNow.disabled = true;
+    el.btnFetchNow.textContent = 'Fetching...';
+    try {
+      await request('/fetch', { method: 'POST' });
+      refreshGuildData();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      el.btnFetchNow.disabled = false;
+      el.btnFetchNow.textContent = 'Fetch Now';
+    }
+  });
+}
 
 // --- Boot ---
 async function boot() {
