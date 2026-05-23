@@ -9,12 +9,14 @@ A production-grade, multi-tenant Discord news platform. VarthaBot fetches RSS ne
 - Overview
 - Architecture & Tech Stack
 - Core Infrastructure Features
+- Premium Platform Features
 - Setup and Installation
 - Environment Variables
 - Database Schema
 - Run Commands
 - Discord Setup & Commands
 - SaaS Control Panel
+- Recent Bug Fixes
 - Developer Details
 - License
 
@@ -40,6 +42,13 @@ Transformed from a standalone bot into a SaaS platform, `vartha-bot-system` is b
 - **Real-Time Log Stream**: WebSocket-powered live terminal built into the dashboard.
 - **Hybrid Failover**: Primary bot delivery with automatic per-guild webhook fallback to ensure 100% uptime.
 - **Robust Admin Detection**: Triple-layer permission check (Owner, Administrator, and Manage Server) via `GuildMembers` intent.
+
+## Premium Platform Features
+
+- **Professional Landing Page**: Detailed infrastructure storytelling with real-time system status indicators.
+- **Enterprise-Grade UI**: A dark-themed, high-performance dashboard styled after industry leaders like GitHub and Cloudflare.
+- **Cache-Busting Assets**: Ensures zero UI lag by forcing immediate updates of CSS and JS assets on the client-side.
+- **Global Guild Monitor**: Automatic live-sync with every Discord server the bot joins.
 
 ## Setup and Installation
 
@@ -67,7 +76,7 @@ Edit `.env`:
 DISCORD_TOKEN=your_bot_token
 CLIENT_ID=your_client_id
 DISCORD_CLIENT_SECRET=your_oauth_secret
-DISCORD_CALLBACK_URL=http://localhost:3000/auth/discord/callback
+DISCORD_CALLBACK_URL=https://your-domain.com/auth/discord/callback
 SESSION_SECRET=a_very_secure_random_string
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_public_anon_key
@@ -97,7 +106,7 @@ Simply copy the contents of `supabase_schema.sql` and execute it in the Supabase
 
 ## SaaS Control Panel
 
-URL: `http://localhost:3000/`
+URL: `https://your-domain.com/`
 
 ### Features
 - **OAuth Secured**: Login with Discord.
@@ -105,6 +114,13 @@ URL: `http://localhost:3000/`
 - **Real-time Status**: Monitor bot health, uptime, and last fetch times across the network.
 - **Live Terminal**: Watch your server's fetch and delivery cycle happen in real-time.
 - **Remote Configuration**: Update any server's feeds or filters instantly.
+
+## Recent Bug Fixes
+
+- **Migration Fix**: Corrected data retrieval logic to ensure guilds inherit global settings during the transition to Supabase.
+- **Queue Isolation**: Refactored the delivery queue to prevent "context leaking," ensuring news is never sent to the wrong channel.
+- **Frontend Stability**: Added defensive checks to the dashboard JS to prevent crashes on partial data loads.
+- **Syntax Cleanup**: Fixed illegal `continue` statements and code duplication in `server.js` and `bot.js`.
 
 ## Developer Details
 
