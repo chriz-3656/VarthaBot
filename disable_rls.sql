@@ -1,0 +1,7 @@
+-- Disable RLS on all VarthaBot tables to allow the bot to sync data
+ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guilds DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.guild_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feeds DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seen_articles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.logs DISABLE ROW LEVEL SECURITY;

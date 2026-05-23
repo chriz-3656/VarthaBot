@@ -1,8 +1,3 @@
--- ==========================================
--- VARTHABOT MASTER SCHEMA (SaaS Edition)
--- ==========================================
-
--- 1. CLEANUP PREVIOUS TABLES (SAFE RESET)
 DROP TABLE IF EXISTS public.logs CASCADE;
 DROP TABLE IF EXISTS public.seen_articles CASCADE;
 DROP TABLE IF EXISTS public.feeds CASCADE;
@@ -10,7 +5,6 @@ DROP TABLE IF EXISTS public.guild_settings CASCADE;
 DROP TABLE IF EXISTS public.guilds CASCADE;
 DROP TABLE IF EXISTS public.users CASCADE;
 
--- 2. USERS TABLE
 CREATE TABLE public.users (
     discord_user_id TEXT PRIMARY KEY,
     username TEXT NOT NULL,
@@ -20,17 +14,15 @@ CREATE TABLE public.users (
     last_login TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 3. GUILDS TABLE
 CREATE TABLE public.guilds (
     guild_id TEXT PRIMARY KEY,
-    owner_id TEXT REFERENCES public.users(discord_user_id) ON DELETE SET NULL,
+    owner_id TEXT REFERENCES public.users(discord_user_id),
     guild_name TEXT NOT NULL,
     icon TEXT,
     joined_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     active BOOLEAN DEFAULT true
 );
 
--- 4. GUILD SETTINGS TABLE
 CREATE TABLE public.guild_settings (
     guild_id TEXT PRIMARY KEY REFERENCES public.guilds(guild_id) ON DELETE CASCADE,
     channel_id TEXT,
@@ -57,7 +49,6 @@ CREATE TABLE public.guild_settings (
     retry_bot_delay_ms INTEGER DEFAULT 3000
 );
 
--- 5. FEEDS TABLE
 CREATE TABLE public.feeds (
     id TEXT PRIMARY KEY,
     guild_id TEXT REFERENCES public.guilds(guild_id) ON DELETE CASCADE,
@@ -68,7 +59,6 @@ CREATE TABLE public.feeds (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 6. SEEN ARTICLES TABLE
 CREATE TABLE public.seen_articles (
     id SERIAL PRIMARY KEY,
     guild_id TEXT REFERENCES public.guilds(guild_id) ON DELETE CASCADE,
@@ -78,7 +68,6 @@ CREATE TABLE public.seen_articles (
     UNIQUE(guild_id, article_hash)
 );
 
--- 7. LOGS TABLE
 CREATE TABLE public.logs (
     id SERIAL PRIMARY KEY,
     guild_id TEXT,
@@ -89,15 +78,6 @@ CREATE TABLE public.logs (
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 8. INDEXES
 CREATE INDEX idx_seen_articles_hash ON public.seen_articles(guild_id, article_hash);
 CREATE INDEX idx_logs_guild ON public.logs(guild_id);
 CREATE INDEX idx_logs_timestamp ON public.logs(timestamp DESC);
-
--- 9. PERMISSIONS (DISABLE RLS FOR BOT SYNC)
-ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.guilds DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.guild_settings DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.feeds DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.seen_articles DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.logs DISABLE ROW LEVEL SECURITY;

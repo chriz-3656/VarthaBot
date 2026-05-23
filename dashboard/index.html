@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VarthaBot Dashboard</title>
-  <link rel="stylesheet" href="/dashboard/style.css?v=1.0.1">
+  <title>Dashboard | VarthaBot</title>
+  <link rel="icon" type="image/png" href="https://i.ibb.co/XM44rgy/logo.png">
+  <link rel="stylesheet" href="/dashboard/style.css?v=1.0.2">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -12,6 +13,7 @@
 
   <aside class="sidebar">
     <div class="sidebar-header">
+      <img src="https://i.ibb.co/XM44rgy/logo.png" alt="Logo" style="height: 24px;">
       VarthaBot
     </div>
     
@@ -32,62 +34,73 @@
           <a href="/auth/logout" class="logout-link">Logout</a>
         </div>
       </div>
+      <div style="margin-top: 15px;">
+        <a href="/" style="font-size: 0.8rem; color: var(--text-secondary);">← Back to Website</a>
+      </div>
     </div>
   </aside>
 
   <main class="main-content">
     <header class="topbar">
       <h2 id="pageTitle">Overview</h2>
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 15px;">
+        <span class="badge" id="globalStatusBadge" style="border-color: var(--success-color); color: var(--success-color);">API: Online</span>
+        <a href="https://discord.com/api/oauth2/authorize?client_id=1491712659211419730&permissions=8&scope=bot%20applications.commands" target="_blank" class="btn-primary" style="font-size: 0.8rem; padding: 6px 12px;">+ Add to Server</a>
+      </div>
     </header>
 
+    <!-- Page: Overview -->
     <div class="page-container" id="page-overview">
       <div class="section-header">
-        <h3>System Status</h3>
+        <h3>System Infrastructure Status</h3>
       </div>
       <div class="grid">
         <div class="card">
-          <div class="card-title">Bot Status</div>
+          <div class="card-title">Global Bot Status</div>
           <div class="card-value" id="botStatus">Checking...</div>
         </div>
         <div class="card">
-          <div class="card-title">Active Guilds</div>
+          <div class="card-title">Connected Guilds</div>
           <div class="card-value" id="guildCount">0</div>
         </div>
         <div class="card">
-          <div class="card-title">System Uptime</div>
+          <div class="card-title">Instance Uptime</div>
           <div class="card-value" id="systemUptime" style="font-size: 1.2rem;">-</div>
         </div>
       </div>
       <div class="section-header">
-        <h3>Recent News (Global Cache)</h3>
+        <h3>Global Feed Pulse</h3>
       </div>
       <div id="overviewNewsList">
         <!-- Rendered via JS -->
       </div>
     </div>
 
+    <!-- Page: Guilds -->
     <div class="page-container hidden" id="page-guilds">
       <div class="section-header">
         <h3>Authorized Guilds</h3>
-        <p style="color: var(--text-secondary); font-size: 0.9rem;">Select a guild to manage its specific feeds and delivery settings.</p>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">Guilds where you have Management permissions.</p>
       </div>
       <div class="grid" id="guildGrid">
         <!-- Rendered via JS -->
       </div>
     </div>
 
+    <!-- Page: Feeds -->
     <div class="page-container hidden" id="page-feeds">
       <div class="section-header">
         <h3>Feed Management</h3>
         <span class="badge" id="currentGuildFeedsBadge">System Defaults</span>
       </div>
       
-      <div class="card" style="margin-bottom: 20px;">
-        <h4>Add New Feed</h4>
-        <form id="addFeedForm" style="display: flex; gap: 10px; margin-top: 15px;">
-          <input type="text" id="feedName" class="form-control" placeholder="Feed Name" required>
-          <input type="url" id="feedUrl" class="form-control" placeholder="RSS URL" required>
-          <button type="submit" class="btn-primary">Add Feed</button>
+      <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--accent-color);">
+        <h4>Provision New Source</h4>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px;">Add a standard RSS/XML feed to this guild's pipeline.</p>
+        <form id="addFeedForm" style="display: flex; gap: 10px;">
+          <input type="text" id="feedName" class="form-control" placeholder="Source Name (e.g. News18)" required>
+          <input type="url" id="feedUrl" class="form-control" placeholder="RSS Feed URL" required>
+          <button type="submit" class="btn-primary">Add to Pipeline</button>
         </form>
       </div>
 
@@ -96,52 +109,57 @@
       </div>
     </div>
 
+    <!-- Page: Delivery -->
     <div class="page-container hidden" id="page-delivery">
       <div class="section-header">
-        <h3>Delivery Configuration</h3>
+        <h3>Delivery Infrastructure</h3>
         <span class="badge" id="currentGuildDeliveryBadge">System Defaults</span>
       </div>
 
       <div class="grid">
         <div class="card">
-          <h4>Delivery Status</h4>
-          <p id="deliveryStatusText" style="margin: 10px 0;">Loading...</p>
+          <h4>Active Status</h4>
+          <p id="deliveryStatusText" style="margin: 10px 0; font-weight: 600;">Loading...</p>
           <div style="display: flex; gap: 10px;">
-            <button id="btnStartDelivery" class="btn-primary">Start Delivery</button>
-            <button id="btnStopDelivery" class="btn-danger">Stop</button>
-            <button id="btnFetchNow" class="btn-secondary">Fetch Now</button>
+            <button id="btnStartDelivery" class="btn-primary">Enable Delivery</button>
+            <button id="btnStopDelivery" class="btn-danger">Lock Delivery</button>
+            <button id="btnFetchNow" class="btn-secondary">Test Pipeline</button>
           </div>
         </div>
       </div>
 
       <div class="card">
+        <div class="card-title" style="margin-bottom: 20px; font-weight: 700; color: var(--text-primary);">Endpoint Configuration</div>
         <form id="settingsForm">
           <div class="grid">
             <div class="form-group">
-              <label>Target Channel ID</label>
-              <input type="text" id="discordChannelId" class="form-control">
+              <label>Discord Channel ID</label>
+              <input type="text" id="discordChannelId" class="form-control" placeholder="e.g. 123456789...">
             </div>
             <div class="form-group">
-              <label>Webhook Fallback URL</label>
-              <input type="url" id="webhookUrl" class="form-control">
+              <label>Failover Webhook URL (Optional)</label>
+              <input type="url" id="webhookUrl" class="form-control" placeholder="https://discord.com/api/webhooks/...">
             </div>
             <div class="form-group">
-              <label>Fetch Interval (Seconds)</label>
-              <input type="number" id="fetchIntervalSeconds" class="form-control">
+              <label>Scan Interval (Seconds)</label>
+              <input type="number" id="fetchIntervalSeconds" class="form-control" min="60">
             </div>
             <div class="form-group">
-              <label>Include Keywords (Comma separated)</label>
-              <input type="text" id="includeKeywords" class="form-control">
+              <label>Filter Keywords (Include)</label>
+              <input type="text" id="includeKeywords" class="form-control" placeholder="keyword1, keyword2...">
             </div>
           </div>
-          <button type="submit" class="btn-primary" style="margin-top: 10px;">Save Settings</button>
+          <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            <button type="submit" class="btn-primary">Commit Settings</button>
+          </div>
         </form>
       </div>
     </div>
 
+    <!-- Page: Logs -->
     <div class="page-container hidden" id="page-logs">
       <div class="section-header">
-        <h3>Live Terminal</h3>
+        <h3>Live Log Stream</h3>
         <span class="badge" id="currentGuildLogsBadge">System Defaults</span>
       </div>
       <div class="terminal" id="terminalLogs">
@@ -151,6 +169,6 @@
 
   </main>
 
-  <script src="/dashboard/app.js?v=1.0.1"></script>
+  <script src="/dashboard/app.js?v=1.0.2"></script>
 </body>
 </html>
