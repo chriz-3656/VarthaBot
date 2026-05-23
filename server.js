@@ -108,13 +108,13 @@ async function stopDelivery(guildId = 'GLOBAL') {
 app.use(
   '/api',
   createApiRouter({
-    manualFetch: (reason) => guardedFetch(reason || 'manual', { force: true, dispatchToDiscord: true }),
-    sendLatest: (count) => sendLatestNews(count),
-    startDelivery: () => startDelivery(),
-    stopDelivery: () => stopDelivery(),
+    manualFetch: (reason, opts) => guardedFetch(reason || 'manual', { ...opts, force: true, dispatchToDiscord: true }),
+    sendLatest: (count, guildId) => sendLatestNews(count, guildId),
+    startDelivery: (guildId) => startDelivery(guildId),
+    stopDelivery: (guildId) => stopDelivery(guildId),
     getClient,
     startedAt: state.startedAt,
-    getLastRunAt: () => state.lastRunAt['GLOBAL'] || 0
+    getLastRunAt: (guildId) => state.lastRunAt[guildId || 'GLOBAL'] || 0
   })
 );
 
