@@ -5,6 +5,15 @@ const {
   ButtonStyle
 } = require('discord.js');
 
+const SYMBOLS = {
+  NEWS: '📑',
+  TIME: '📡',
+  READ: '🔗',
+  REFRESH: '⚡',
+  SHARE: '📤',
+  CATEGORY: '🏷️'
+};
+
 const CATEGORY_RULES = [
   { name: 'Breaking', words: ['breaking', 'ബ്രേക്കിംഗ്', 'urgent', 'latest'] },
   { name: 'Politics', words: ['election', 'poll', 'assembly', 'politics', 'മന്ത്രി', 'തിരഞ്ഞെടുപ്പ്', 'സർക്കാർ'] },
@@ -77,7 +86,7 @@ function buildDescription(item, settings) {
   const trimmed = truncateText(item.summary || 'No summary available', settings.descriptionLength);
   const highlighted = highlightKeywords(trimmed);
   const unix = Math.floor(new Date(item.pubDate || Date.now()).getTime() / 1000);
-  return `${highlighted}\n\n🕒 <t:${unix}:R>`;
+  return `${highlighted}\n\n${SYMBOLS.TIME} <t:${unix}:R>`;
 }
 
 function resolveImage(item, settings) {
@@ -111,7 +120,7 @@ function buildEmbed(item, rawSettings = {}) {
 
   const embed = new EmbedBuilder()
     .setColor(settings.accentColor)
-    .setAuthor({ name: `📰 ${sourceName} — ${settings.sourceTitleSuffix}` })
+    .setAuthor({ name: `${SYMBOLS.NEWS} ${sourceName} — ${settings.sourceTitleSuffix}` })
     .setTitle(item.title || 'Untitled News')
     .setDescription(buildDescription(item, settings))
     .setFooter({ text: settings.footerBrandingText })
@@ -122,7 +131,7 @@ function buildEmbed(item, rawSettings = {}) {
   }
 
   if (settings.enableCategoryTags) {
-    embed.addFields({ name: 'Category', value: category, inline: true });
+    embed.addFields({ name: 'Category', value: `${SYMBOLS.CATEGORY} ${category}`, inline: true });
   }
 
   const image = resolveImage(item, settings);
@@ -209,14 +218,6 @@ function sortByPriority(items, rawSettings = {}) {
 
 module.exports = {
   normalizeSettings,
-  deriveCategory,
-  buildDiscordMessage,
-  buildEmbed,
-  sortByPriority
-};
-
-};
-malizeSettings,
   deriveCategory,
   buildDiscordMessage,
   buildEmbed,
