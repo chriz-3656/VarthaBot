@@ -201,15 +201,12 @@ async function fetchFromEnabledFeeds(feeds, options = {}) {
   return allItems;
 }
 
-function saveNewsCache(items) {
-  writeJson('newsCache.json', {
-    items: items.slice(0, 100)
-  });
+function saveNewsCache(items, guildId = 'GLOBAL') {
+  guildCaches.set(guildId, items.slice(0, 100));
 }
 
-function getNewsCache() {
-  const data = readJson('newsCache.json', { items: [] });
-  return Array.isArray(data.items) ? data.items : [];
+function getNewsCache(guildId = 'GLOBAL') {
+  return guildCaches.get(guildId) || [];
 }
 
 module.exports = {
