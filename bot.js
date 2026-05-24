@@ -48,7 +48,11 @@ const commands = [
         .setDescription('How many messages to clear')
         .setMinValue(1)
         .setMaxValue(100)
-    )
+    ),
+  new SlashCommandBuilder()
+    .setName('stop')
+    .setDescription('Stop automated news delivery for this server')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
 ].map((c) => c.toJSON());
 
 let client = null;
@@ -224,6 +228,27 @@ async function initBot(options = {}) {
         await setSettings(next, guildId);
         await interaction.reply({
           content: `✅ News delivery channel configured: ${channel}. Delivery is now enabled for this server.`,
+          ephemeral: true
+        });
+        return;
+      }
+
+      if (interaction.commandName === 'stop') {
+        if (!interaction.inGuild()) {
+          await interaction.reply({ content: '/stop can only be used inside a server.', ephemeral: false });
+          return;
+        }
+
+        if (!isGuildAdmin(interaction)) {
+          await interaction.reply({ content: 'Admin permission required.', ephemeral: true });
+          return;
+        }
+
+        const current = await getSettings(guildId);
+        await setSettings({ ...current, deliveryEnabled: false }, guildId);
+
+        await interaction.reply({
+          content: '🛑 News delivery has been disabled for this server. Use `/setup` to re-enable it.',
           ephemeral: true
         });
         return;

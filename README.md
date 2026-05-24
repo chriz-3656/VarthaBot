@@ -104,6 +104,18 @@ npm run register:commands
 
 ---
 
+## 🤖 Discord Setup & Commands
+
+- `/setup channel:<#channel>`: Configure the target news channel (Admin/Owner only). **Sets 30 min delivery interval by default.**
+- `/stop`: Stop automated news delivery for this server (Admin/Owner only).
+- `/news`: Fetch latest news immediately.
+- `/info`: Show server-specific bot runtime details.
+- `/commands`: List all available commands.
+- `/clear count:<1-100>`: Bulk delete messages.
+- `/reload`: Reload guild configuration.
+
+---
+
 ## 📝 Changelog
 
 ### **v2.5.0 (Latest)**
