@@ -10,11 +10,21 @@ async function getFeeds(guildId = 'GLOBAL') {
 
   if (error) {
     logger.error('Error fetching feeds from Supabase', { error: error.message, guildId });
-    return guildId === 'GLOBAL' ? defaults.feeds : [];
   }
 
+  // If the specific guild has no feeds, fallback to the GLOBAL configuration
   if (!data || data.length === 0) {
-    return guildId === 'GLOBAL' ? defaults.feeds : [];
+    if (guildId !== 'GLOBAL') {
+      const { data: globalData, error: globalError } = await supabase
+        .from('feeds')
+        .select('*')
+        .eq('guild_id', 'GLOBAL');
+        
+      if (!globalError && globalData && globalData.length > 0) {
+        return globalData;
+      }
+    }
+    return defaults.feeds;
   }
 
   return data;

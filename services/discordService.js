@@ -149,6 +149,8 @@ async function processQueue() {
 }
 
 function enqueueNews(items, context) {
+  const guildId = context.settings.guildId || 'unknown';
+  logger.info(`Enqueuing ${items.length} items for delivery`, { guildId });
   const additions = items.map((item) => ({ item, context }));
   queue.push(...additions);
   processQueue();
