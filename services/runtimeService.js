@@ -163,7 +163,6 @@ async function syncGuildData(guild) {
   if (!guild || !guild.id) return;
   const payload = {
     guild_id: guild.id,
-    owner_id: guild.ownerId,
     guild_name: guild.name,
     icon: guild.icon,
     active: true
