@@ -14,7 +14,7 @@ const { getNewsCache } = require('./services/rssService');
 const { buildDiscordMessage } = require('./services/presentationService');
 const { getSettings, setSettings, syncGuildData } = require('./services/runtimeService');
 
-const guildCommands = [
+const commands = [
   new SlashCommandBuilder()
     .setName('setup')
     .setDescription('Configure the news delivery channel')
@@ -51,28 +51,6 @@ const guildCommands = [
     )
 ].map((c) => c.toJSON());
 
-const globalCommands = [
-  new SlashCommandBuilder()
-    .setName('news')
-    .setDescription('Fetch latest Malayalam news'),
-  new SlashCommandBuilder()
-    .setName('info')
-    .setDescription('Show bot info and runtime details'),
-  new SlashCommandBuilder()
-    .setName('commands')
-    .setDescription('Preview all available bot commands'),
-  new SlashCommandBuilder()
-    .setName('clear')
-    .setDescription('Clear messages in this chat (guild/DM)')
-    .addIntegerOption((option) =>
-      option
-        .setName('count')
-        .setDescription('How many messages to clear')
-        .setMinValue(1)
-        .setMaxValue(100)
-    )
-].map((c) => c.toJSON());
-
 let client = null;
 
 async function registerSlashCommands() {
@@ -81,12 +59,13 @@ async function registerSlashCommands() {
   try {
     logger.info('Started refreshing slash commands');
 
-    await rest.put(Routes.applicationCommands(env.CLIENT_ID), { body: globalCommands });
+    await rest.put(Routes.applicationCommands(env.CLIENT_ID), { body: commands });
     logger.info('Global slash commands registered (DM support enabled)');
 
+    // Clear legacy guild commands if a GUILD_ID is provided to prevent duplicates
     if (env.GUILD_ID) {
-      await rest.put(Routes.applicationGuildCommands(env.CLIENT_ID, env.GUILD_ID), { body: guildCommands });
-      logger.info('Guild slash commands registered');
+      await rest.put(Routes.applicationGuildCommands(env.CLIENT_ID, env.GUILD_ID), { body: [] });
+      logger.info('Cleared legacy guild slash commands');
     }
   } catch (error) {
     logger.error('Failed to register slash commands', { error: error.message });
@@ -251,7 +230,7 @@ async function initBot(options = {}) {
       }
 
       if (interaction.commandName === 'news') {
-        let items = getNewsCache();
+        let items = getNewsCache(guildId);
         const ephemeral = interaction.inGuild();
         await interaction.deferReply({ ephemeral });
 
@@ -277,7 +256,7 @@ async function initBot(options = {}) {
         const runtime = typeof options.getRuntimeInfo === 'function' ? await options.getRuntimeInfo(guildId) : {};
         const fmt = formatRuntimeInfo(runtime);
         const settings = runtime?.settings || {};
-        const cached = getNewsCache().length;
+        const cached = getNewsCache(guildId).length;
 
         const infoEmbed = {
           color: 0x7c3aed,

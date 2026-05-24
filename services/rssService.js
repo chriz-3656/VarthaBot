@@ -1,6 +1,7 @@
 const Parser = require('rss-parser');
-const { readJson, writeJson } = require('./storageService');
 const logger = require('../utils/logger');
+
+const guildCaches = new Map();
 
 const parser = new Parser({
   timeout: 12000,

@@ -149,8 +149,9 @@ module.exports = {
     DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET || '',
     DISCORD_CALLBACK_URL: process.env.DISCORD_CALLBACK_URL || 'http://localhost:3000/auth/discord/callback',
     SESSION_SECRET: process.env.SESSION_SECRET || 'fallback_dev_secret',
+    GUILD_ID: process.env.GUILD_ID || '',
     SUPABASE_URL: process.env.SUPABASE_URL || '',
-    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
     PORT: Number(process.env.PORT || 3000)
   }
 };

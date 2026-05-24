@@ -49,8 +49,19 @@ const el = {
   includeKeywords: document.getElementById('includeKeywords'),
 
   // Logs
-  terminalLogs: document.getElementById('terminalLogs')
+  terminalLogs: document.getElementById('terminalLogs'),
+  
+  // Mobile UI
+  mobileMenuBtn: document.getElementById('mobileMenuBtn'),
+  sidebar: document.querySelector('.sidebar')
 };
+
+// --- Mobile UI ---
+if (el.mobileMenuBtn) {
+  el.mobileMenuBtn.addEventListener('click', () => {
+    el.sidebar.classList.toggle('open');
+  });
+}
 
 // --- Navigation ---
 el.navItems.forEach(item => {
@@ -64,6 +75,11 @@ el.navItems.forEach(item => {
     document.getElementById(`page-${target}`).classList.remove('hidden');
     
     el.pageTitle.textContent = item.textContent;
+    
+    // Close sidebar on mobile after clicking
+    if (window.innerWidth <= 768) {
+      el.sidebar.classList.remove('open');
+    }
   });
 });
 

@@ -30,8 +30,7 @@ async function runFetchCycle(context, opts = {}) {
     feedFetchDelayMs: settings.feedFetchDelayMs
   });
   const prioritized = sortByPriority(fetched, settings);
-  // Optional: saveNewsCache(prioritized); Note: Since we use DB, maybe drop this, but keep if needed.
-  saveNewsCache(prioritized);
+  saveNewsCache(prioritized, guildId);
 
   const filtered = prioritized.filter((item) => isAllowed(item, settings));
   const seenHashes = await dedupService.getSeen(guildId);

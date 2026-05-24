@@ -143,7 +143,7 @@ async function sendLatestNews(count = 1, guildId = 'GLOBAL') {
     return { sent: 0, reason: 'delivery_disabled', guildId };
   }
 
-  const latest = getNewsCache().slice(0, Math.max(1, count));
+  const latest = getNewsCache(guildId).slice(0, Math.max(1, count));
 
   if (latest.length === 0) {
     return { sent: 0, reason: 'no_cached_news', guildId };
@@ -248,19 +248,25 @@ cron.schedule('* * * * *', async () => {
   const now = Date.now();
 
   for (const guildId of guildIds) {
-    const settings = await getSettings(guildId);
-    if (settings.deliveryEnabled === false) {
-      continue;
+    try {
+      const settings = await getSettings(guildId);
+      if (settings.deliveryEnabled === false) {
+        continue;
+      }
+
+      const intervalMs = Math.max(60, Number(settings.fetchIntervalSeconds || 1800)) * 1000;
+      const lastRun = state.lastRunAt[guildId] || 0;
+
+      if (lastRun > 0 && now - lastRun < intervalMs) {
+        continue;
+      }
+
+      await guardedFetch('cron', { guildId });
+      // Stagger fetches slightly to avoid rate limit spikes
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (err) {
+      logger.error('Error during cron processing for guild', { guildId, error: err.message });
     }
-
-    const intervalMs = Math.max(60, Number(settings.fetchIntervalSeconds || 1800)) * 1000;
-    const lastRun = state.lastRunAt[guildId] || 0;
-
-    if (lastRun > 0 && now - lastRun < intervalMs) {
-      continue;
-    }
-
-    await guardedFetch('cron', { guildId });
   }
 });
 

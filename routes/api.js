@@ -66,8 +66,9 @@ function createApiRouter(context) {
     }
   });
 
-  router.get('/news', (_req, res) => {
-    res.json({ items: getNewsCache().slice(0, 50) });
+  router.get('/news', (req, res) => {
+    const guildId = req.query.guildId || 'GLOBAL';
+    res.json({ items: getNewsCache(guildId).slice(0, 50) });
   });
 
   router.post('/fetch', async (req, res) => {
