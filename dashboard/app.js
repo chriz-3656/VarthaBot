@@ -72,12 +72,13 @@ el.navItems.forEach(item => {
     item.classList.add('active');
 
     el.pages.forEach(p => p.classList.add('hidden'));
-    document.getElementById(`page-${target}`).classList.remove('hidden');
+    const targetPage = document.getElementById(`page-${target}`);
+    if (targetPage) targetPage.classList.remove('hidden');
     
     el.pageTitle.textContent = item.textContent;
     
     // Close sidebar on mobile after clicking
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 1024) {
       el.sidebar.classList.remove('open');
     }
   });
@@ -116,7 +117,7 @@ function escapeHtml(value) {
 
 function updateBadges() {
   el.badges.forEach(b => {
-    b.textContent = currentGuildName;
+    if (b) b.textContent = currentGuildName;
   });
 }
 
@@ -136,6 +137,7 @@ function initSocket() {
 }
 
 function appendLog(line) {
+  if (!el.terminalLogs) return;
   const level = String(line.level || 'info').toLowerCase();
   const text = `[${line.timestamp}] [${String(line.level || '').toUpperCase()}] ${line.message}`;
   
@@ -155,7 +157,7 @@ function appendLog(line) {
 // --- Data Fetching & Rendering ---
 async function loadUserSession() {
   try {
-    const data = await request('/me'); // doesn't use guildId query param effectively
+    const data = await request('/me');
     if (data.user) {
       el.userName.textContent = data.user.username;
       if (data.user.avatar) {
@@ -185,18 +187,24 @@ async function loadOverview() {
       el.systemUptime.textContent = `${h}h ${m}m`;
     }
 
-    el.overviewNewsList.innerHTML = '';
-    (news.items || []).slice(0, 5).forEach(item => {
-      const node = document.createElement('div');
-      node.className = 'list-item';
-      node.innerHTML = `
-        <div class="list-item-content">
-          <h4>${escapeHtml(item.title)}</h4>
-          <p>${escapeHtml(item.source)} • ${new Date(item.pubDate).toLocaleString()}</p>
-        </div>
-      `;
-      el.overviewNewsList.appendChild(node);
-    });
+    if (el.overviewNewsList) {
+      el.overviewNewsList.innerHTML = '';
+      if (!news.items || news.items.length === 0) {
+        el.overviewNewsList.innerHTML = '<div class="card"><p style="color:var(--text-secondary); text-align:center;">No news articles in pipeline cache.</p></div>';
+      } else {
+        (news.items || []).slice(0, 5).forEach(item => {
+          const node = document.createElement('div');
+          node.className = 'list-item';
+          node.innerHTML = `
+            <div class="list-item-content">
+              <h4>${escapeHtml(item.title)}</h4>
+              <p>${escapeHtml(item.source)} • ${new Date(item.pubDate).toLocaleString()}</p>
+            </div>
+          `;
+          el.overviewNewsList.appendChild(node);
+        });
+      }
+    }
 
   } catch (error) {
     console.error('Error loading overview', error);
@@ -206,6 +214,7 @@ async function loadOverview() {
 async function loadGuilds() {
   try {
     const { guilds } = await request('/guilds');
+    if (!el.guildGrid) return;
     el.guildGrid.innerHTML = '';
 
     guilds.forEach(g => {
@@ -218,8 +227,8 @@ async function loadGuilds() {
           <div class="guild-icon">${g.name.charAt(0)}</div>
           <div class="guild-name">${escapeHtml(g.name)}</div>
         </div>
-        <div style="display:flex; justify-content: space-between; align-items:center;">
-          <span style="font-size:0.85rem; color:var(--text-secondary)">ID: ${g.id === 'GLOBAL' ? 'Default' : g.id}</span>
+        <div style="display:flex; justify-content: space-between; align-items:center; gap: 10px; flex-wrap: wrap;">
+          <span style="font-size:0.75rem; color:var(--text-secondary)">ID: ${g.id === 'GLOBAL' ? 'Default' : g.id}</span>
           <span class="badge ${g.deliveryEnabled ? 'success' : 'danger'}">${g.deliveryEnabled ? 'Active' : 'Disabled'}</span>
         </div>
       `;
@@ -249,41 +258,51 @@ async function refreshGuildData() {
     ]);
 
     // Render Feeds
-    el.feedList.innerHTML = '';
-    (feeds.items || []).forEach(feed => {
-      const node = document.createElement('div');
-      node.className = 'list-item';
-      node.innerHTML = `
-        <div class="list-item-content">
-          <h4>${escapeHtml(feed.name)}</h4>
-          <p>${escapeHtml(feed.url)}</p>
-        </div>
-        <div class="list-item-actions">
-          <button class="btn-secondary" data-action="toggle" data-id="${feed.id}">${feed.enabled ? 'Disable' : 'Enable'}</button>
-          <button class="btn-danger" data-action="remove" data-id="${feed.id}">Delete</button>
-        </div>
-      `;
-      el.feedList.appendChild(node);
-    });
+    if (el.feedList) {
+      el.feedList.innerHTML = '';
+      if (!feeds.items || feeds.items.length === 0) {
+        el.feedList.innerHTML = '<div class="card"><p style="color:var(--text-secondary); text-align:center;">No feeds configured for this guild.</p></div>';
+      } else {
+        (feeds.items || []).forEach(feed => {
+          const node = document.createElement('div');
+          node.className = 'list-item';
+          node.innerHTML = `
+            <div class="list-item-content">
+              <h4>${escapeHtml(feed.name)}</h4>
+              <p style="word-break: break-all;">${escapeHtml(feed.url)}</p>
+            </div>
+            <div class="list-item-actions">
+              <button class="btn-secondary" data-action="toggle" data-id="${feed.id}">${feed.enabled ? 'Disable' : 'Enable'}</button>
+              <button class="btn-danger" data-action="remove" data-id="${feed.id}">Delete</button>
+            </div>
+          `;
+          el.feedList.appendChild(node);
+        });
+      }
+    }
 
     // Render Settings
     if (!settingsDirty) {
       const s = settings.item || {};
-      el.discordChannelId.value = s.discordChannelId || '';
-      el.webhookUrl.value = s.webhookUrl || '';
-      el.fetchIntervalSeconds.value = s.fetchIntervalSeconds || 1800;
-      el.includeKeywords.value = Array.isArray(s.includeKeywords) ? s.includeKeywords.join(', ') : '';
+      if (el.discordChannelId) el.discordChannelId.value = s.discordChannelId || '';
+      if (el.webhookUrl) el.webhookUrl.value = s.webhookUrl || '';
+      if (el.fetchIntervalSeconds) el.fetchIntervalSeconds.value = s.fetchIntervalSeconds || 1800;
+      if (el.includeKeywords) el.includeKeywords.value = Array.isArray(s.includeKeywords) ? s.includeKeywords.join(', ') : '';
     }
 
     // Render Status
-    const deliveryEnabled = status.deliveryEnabled !== false;
-    el.deliveryStatusText.textContent = deliveryEnabled ? 'Delivery is currently ACTIVE.' : 'Delivery is currently DISABLED.';
-    el.btnStartDelivery.disabled = deliveryEnabled;
-    el.btnStopDelivery.disabled = !deliveryEnabled;
+    if (el.deliveryStatusText) {
+      const deliveryEnabled = status.deliveryEnabled !== false;
+      el.deliveryStatusText.textContent = deliveryEnabled ? 'Delivery is currently ACTIVE.' : 'Delivery is currently DISABLED.';
+      if (el.btnStartDelivery) el.btnStartDelivery.disabled = deliveryEnabled;
+      if (el.btnStopDelivery) el.btnStopDelivery.disabled = !deliveryEnabled;
+    }
 
     // Render Logs (initial payload)
-    el.terminalLogs.innerHTML = '';
-    (logs.items || []).slice().reverse().forEach(appendLog);
+    if (el.terminalLogs) {
+      el.terminalLogs.innerHTML = '';
+      (logs.items || []).slice().reverse().forEach(appendLog);
+    }
 
   } catch (error) {
     console.error('Error refreshing guild data', error);
@@ -315,6 +334,7 @@ if (el.feedList) {
 
     try {
       if (action === 'remove') {
+        if (!confirm('Are you sure you want to remove this feed?')) return;
         await request(`/feeds/${id}`, { method: 'DELETE' });
       } else if (action === 'toggle') {
         const isDisable = e.target.textContent === 'Disable';
@@ -382,13 +402,14 @@ if (el.btnFetchNow) {
     el.btnFetchNow.disabled = true;
     el.btnFetchNow.textContent = 'Fetching...';
     try {
-      await request('/fetch', { method: 'POST' });
+      const res = await request('/fetch', { method: 'POST' });
+      alert(`Fetch cycle initiated.\nFetched: ${res.result?.fetched || 0} items.`);
       refreshGuildData();
     } catch (error) {
       alert(error.message);
     } finally {
       el.btnFetchNow.disabled = false;
-      el.btnFetchNow.textContent = 'Fetch Now';
+      el.btnFetchNow.textContent = 'Test Pipeline';
     }
   });
 }

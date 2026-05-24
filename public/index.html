@@ -4,35 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VarthaBot | Smart Malayalam News Infrastructure for Discord</title>
-  <link rel="stylesheet" href="/style.css?v=1.0.2">
+  <link rel="stylesheet" href="/style.css?v=1.0.3">
   <link rel="icon" type="image/png" href="https://i.ibb.co/XM44rgy/logo.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    /* Content Expansion Specific Styles */
-    .status-strip {
-        background: var(--surface-color);
-        border-bottom: 1px solid var(--border-color);
-        padding: 8px 40px;
-        display: flex;
-        justify-content: center;
-        gap: 30px;
-        font-size: 0.8rem;
-        color: var(--text-secondary);
-    }
-    .status-item { display: flex; align-items: center; gap: 6px; }
-    .pulse { width: 8px; height: 8px; background: var(--success-color); border-radius: 50%; box-shadow: 0 0 0 rgba(46, 160, 67, 0.4); animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(46, 160, 67, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(46, 160, 67, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(46, 160, 67, 0); } }
-    
-    .section-title { text-align: center; margin-bottom: 60px; }
-    .section-title h2 { font-size: 2.5rem; margin-bottom: 15px; }
-    
-    .docs-preview { background: var(--surface-color); padding: 80px 40px; border-top: 1px solid var(--border-color); }
-    .docs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1000px; margin: 0 auto; }
-    .doc-category h4 { color: var(--accent-color); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; }
-    .doc-category ul { list-style: none; }
-    .doc-category li { margin-bottom: 10px; color: var(--text-secondary); font-size: 0.95rem; }
-    .doc-category code { background: var(--card-color); padding: 2px 6px; border-radius: 4px; color: var(--text-primary); font-size: 0.9rem; }
-  </style>
 </head>
 <body>
   <div class="status-strip">
@@ -41,120 +15,137 @@
     <div class="status-item">Latest News: Just Now</div>
   </div>
 
-  <nav class="navbar">
-    <div class="nav-brand">
-        <img src="https://i.ibb.co/XM44rgy/logo.png" alt="VarthaBot Logo" style="height: 32px; margin-right: 10px; vertical-align: middle;">
-        VarthaBot
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">
+          <img src="https://i.ibb.co/XM44rgy/logo.png" alt="VarthaBot Logo">
+          <span>VarthaBot</span>
+      </div>
+      
+      <button class="mobile-toggle" aria-label="Toggle Menu" id="mobileMenuBtn">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+
+      <nav class="nav-links" id="navLinks">
+        <a href="#features">Features</a>
+        <a href="#infrastructure">Infrastructure</a>
+        <a href="#docs">Docs</a>
+        <div class="nav-actions">
+          <a href="/dashboard/" class="btn-secondary">Dashboard</a>
+          <a href="/auth/discord" class="btn-primary">Invite Bot</a>
+        </div>
+      </nav>
     </div>
-    <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#infrastructure">Infrastructure</a>
-      <a href="#docs">Documentation</a>
-      <a href="/dashboard/" class="btn-secondary">Go to Dashboard</a>
-      <a href="/auth/discord" class="btn-primary">Invite & Login</a>
-    </div>
-  </nav>
+  </header>
 
   <main>
-    <section class="hero">
-      <img src="https://i.ibb.co/XM44rgy/logo.png" alt="VarthaBot" style="width: 120px; margin-bottom: 30px;">
-      <h1>The Gold Standard for<br>News Delivery in Discord</h1>
-      <p>Real-time RSS intelligence, enterprise-grade multi-server management, and a centralized SaaS infrastructure designed for scale.</p>
-      <div class="hero-actions">
-        <a href="/auth/discord" class="btn-primary">Start Scaling Now</a>
-        <a href="https://github.com/chriz-3656/VarthaBot" class="btn-secondary">View on GitHub</a>
+    <section class="hero container">
+      <div class="hero-content">
+        <img src="https://i.ibb.co/XM44rgy/logo.png" alt="VarthaBot" class="hero-logo">
+        <h1>Smart Malayalam News<br>Infrastructure for Discord</h1>
+        <p>Real-time RSS intelligence, enterprise-grade multi-server management, and a centralized SaaS infrastructure designed for scale.</p>
+        <div class="hero-actions">
+          <a href="/auth/discord" class="btn-primary">Start Scaling Now</a>
+          <a href="https://github.com/chriz-3656/VarthaBot" class="btn-secondary">View on GitHub</a>
+        </div>
       </div>
     </section>
 
-    <section id="features" class="features">
-      <div class="feature-card">
-        <div class="card-icon" style="color: var(--accent-color); font-size: 1.5rem; margin-bottom: 15px;">🌐</div>
-        <h3>Malayalam Native</h3>
-        <p>Expertly tuned for Malayalam font rendering and local RSS sources. Deliver news in the language your community loves.</p>
-      </div>
-      <div class="feature-card">
-        <div class="card-icon" style="color: var(--accent-color); font-size: 1.5rem; margin-bottom: 15px;">⚡</div>
-        <h3>Real-Time Pipeline</h3>
-        <p>High-frequency fetching with deduplication. Your server stays updated with the world without duplicate notifications.</p>
-      </div>
-      <div class="feature-card">
-        <div class="card-icon" style="color: var(--accent-color); font-size: 1.5rem; margin-bottom: 15px;">🛡️</div>
-        <h3>Infrastructure-First</h3>
-        <p>Powered by Supabase PostgreSQL and Node.js. Built for stability, speed, and massive server counts.</p>
+    <section id="features" class="container section">
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="card-icon">🌐</div>
+          <h3>Malayalam Native</h3>
+          <p>Expertly tuned for Malayalam font rendering and local RSS sources. Deliver news in the language your community loves.</p>
+        </div>
+        <div class="feature-card">
+          <div class="card-icon">⚡</div>
+          <h3>Real-Time Pipeline</h3>
+          <p>High-frequency fetching with deduplication. Your server stays updated without duplicate notifications.</p>
+        </div>
+        <div class="feature-card">
+          <div class="card-icon">🛡️</div>
+          <h3>Infrastructure-First</h3>
+          <p>Powered by Supabase PostgreSQL and Node.js. Built for stability, speed, and massive server counts.</p>
+        </div>
       </div>
     </section>
 
-    <section id="infrastructure" class="page-container" style="padding: 100px 40px; border-top: 1px solid var(--border-color);">
+    <section id="infrastructure" class="bg-surface section">
+      <div class="container">
         <div class="section-title">
             <h2>Scalable Architecture</h2>
-            <p style="color: var(--text-secondary);">Enterprise features available for every server administrator.</p>
+            <p>Enterprise features available for every server administrator.</p>
         </div>
         <div class="grid">
             <div class="card">
-                <div class="card-title">Cloud Managed</div>
-                <p style="font-size: 0.9rem; color: var(--text-secondary);">Settings are stored in the cloud. No local config loss, ever.</p>
+                <h3>Cloud Managed</h3>
+                <p>Settings are stored in the cloud. No local config loss, ever.</p>
             </div>
             <div class="card">
-                <div class="card-title">OAuth2 Secured</div>
-                <p style="font-size: 0.9rem; color: var(--text-secondary);">Role-based access ensure only authorized admins manage the bot.</p>
+                <h3>OAuth2 Secured</h3>
+                <p>Role-based access ensure only authorized admins manage the bot.</p>
             </div>
             <div class="card">
-                <div class="card-title">Isolated Queues</div>
-                <p style="font-size: 0.9rem; color: var(--text-secondary);">Each server has its own dedicated delivery and filter engine.</p>
+                <h3>Isolated Queues</h3>
+                <p>Each server has its own dedicated delivery and filter engine.</p>
             </div>
         </div>
+      </div>
     </section>
 
-    <section id="docs" class="docs-preview">
-        <div class="section-title">
-            <h2>Command Documentation</h2>
-        </div>
-        <div class="docs-grid">
-            <div class="doc-category">
-                <h4>Setup & Config</h4>
-                <ul>
-                    <li><code>/setup</code> - Link a channel for auto-delivery.</li>
-                    <li><code>/reload</code> - Sync cloud settings with Discord.</li>
-                    <li><code>/info</code> - View runtime performance metrics.</li>
-                </ul>
-            </div>
-            <div class="doc-category">
-                <h4>Management</h4>
-                <ul>
-                    <li><code>/news</code> - Trigger an on-demand fetch cycle.</li>
-                    <li><code>/clear</code> - Bulk prune news messages.</li>
-                    <li><code>/commands</code> - Full capability overview.</li>
-                </ul>
-            </div>
-        </div>
+    <section id="docs" class="container section">
+      <div class="section-title">
+          <h2>Command Documentation</h2>
+      </div>
+      <div class="docs-grid">
+          <div class="doc-category">
+              <h4>Setup & Config</h4>
+              <ul>
+                  <li><code>/setup</code> - Link a channel for auto-delivery.</li>
+                  <li><code>/reload</code> - Sync cloud settings with Discord.</li>
+                  <li><code>/info</code> - View runtime performance metrics.</li>
+              </ul>
+          </div>
+          <div class="doc-category">
+              <h4>Management</h4>
+              <ul>
+                  <li><code>/news</code> - Trigger an on-demand fetch cycle.</li>
+                  <li><code>/clear</code> - Bulk prune news messages.</li>
+                  <li><code>/commands</code> - Full capability overview.</li>
+              </ul>
+          </div>
+      </div>
     </section>
   </main>
 
-  <footer>
-    <div class="footer-content">
+  <footer class="footer">
+    <div class="container footer-grid">
       <div class="footer-brand">
-        <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">VarthaBot Platform</div>
-        <p style="font-size: 0.85rem;">Professional Malayalam News Infrastructure.</p>
+        <div class="brand-text">VarthaBot Platform</div>
+        <p>Professional Malayalam News Infrastructure.</p>
       </div>
       <div class="footer-links">
         <div class="footer-col">
-            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">Developer</div>
+            <h5>Developer</h5>
             <a href="https://github.com/chriz-3656">chriz3656</a>
         </div>
         <div class="footer-col">
-            <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">Platform</div>
+            <h5>Platform</h5>
             <a href="/dashboard/">Dashboard</a>
             <a href="https://github.com/chriz-3656/VarthaBot">Source</a>
         </div>
       </div>
     </div>
-    <div style="text-align: center; margin-top: 40px; font-size: 0.8rem; color: var(--text-secondary);">
+    <div class="footer-bottom container">
         &copy; 2026 VarthaBot. Managed via Oracle Cloud Infrastructure.
     </div>
   </footer>
 
   <script>
-    // Simple landing page logic
+    // Stats Fetching
     async function fetchStats() {
         try {
             const res = await fetch('/api/status?guildId=GLOBAL');
@@ -165,6 +156,25 @@
         } catch(e) {}
     }
     fetchStats();
+
+    // Mobile Menu Toggle
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const navLinks = document.getElementById('navLinks');
+    
+    mobileMenuBtn.addEventListener('click', () => {
+        mobileMenuBtn.classList.toggle('active');
+        navLinks.classList.toggle('active');
+        document.body.classList.toggle('no-scroll');
+    });
+
+    // Close menu on link click
+    navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            mobileMenuBtn.classList.remove('active');
+            navLinks.classList.remove('active');
+            document.body.classList.remove('no-scroll');
+        });
+    });
   </script>
 </body>
 </html>
