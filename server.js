@@ -209,12 +209,16 @@ const requireAuth = env.DISCORD_CLIENT_SECRET ? checkAuth : (req, res, next) => 
 
 const apiRouter = createApiRouter(apiContext);
 
-// Public API endpoints (No Auth required for landing page pulse)
-app.get('/api/status', apiRouter);
-app.get('/api/news', apiRouter);
+// API route with selective protection
+app.use('/api', (req, res, next) => {
+  // Allow public access to these specific paths
+  if (req.path === '/status' || req.path === '/news') {
+    return next();
+  }
+  // All other /api/* routes require authentication
+  return requireAuth(req, res, next);
+}, apiRouter);
 
-// Secure routes (Auth required for management)
-app.use('/api', requireAuth, apiRouter);
 app.use('/dashboard', requireAuth, express.static(path.join(__dirname, 'dashboard')));
 
 app.get('/', (_req, res) => {
