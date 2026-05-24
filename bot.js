@@ -316,7 +316,7 @@ async function initBot(options = {}) {
         const settings = await getSettings(guildId);
         const previewEmbed = {
           color: 0x38bdf8,
-          title: 'വാർത്ത ബോട്ട് • Command Preview',
+          title: 'വാർത്ത ബോട്ട് 📡 Command Preview',
           description: 'Available commands and quick usage',
           fields: [
             { name: '/setup channel:<#channel>', value: 'Set the target news channel (admin only)', inline: false },

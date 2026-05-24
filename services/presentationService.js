@@ -141,7 +141,7 @@ function buildComponents(item, rawSettings = {}, options = {}) {
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setLabel('📖 Read Full News')
+      .setLabel(`${SYMBOLS.READ} Read News`)
       .setStyle(ButtonStyle.Link)
       .setURL(item.link || 'https://discord.com')
   );
@@ -149,11 +149,11 @@ function buildComponents(item, rawSettings = {}, options = {}) {
   if (options.enableInteractive !== false) {
     row.addComponents(
       new ButtonBuilder()
-        .setLabel('🔄 Refresh')
+        .setLabel(`${SYMBOLS.REFRESH} Refresh`)
         .setStyle(ButtonStyle.Secondary)
         .setCustomId('refresh_news'),
       new ButtonBuilder()
-        .setLabel('🔗 Share')
+        .setLabel(`${SYMBOLS.SHARE} Share`)
         .setStyle(ButtonStyle.Link)
         .setURL(item.link || 'https://discord.com')
     );
@@ -209,6 +209,14 @@ function sortByPriority(items, rawSettings = {}) {
 
 module.exports = {
   normalizeSettings,
+  deriveCategory,
+  buildDiscordMessage,
+  buildEmbed,
+  sortByPriority
+};
+
+};
+malizeSettings,
   deriveCategory,
   buildDiscordMessage,
   buildEmbed,
