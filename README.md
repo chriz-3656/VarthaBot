@@ -1,136 +1,138 @@
-# VarthaBot - SaaS News Infrastructure
+# VarthaBot - Production-Grade News Infrastructure
 
 ![Vartha Bot Logo](https://i.ibb.co/XM44rgy/logo.png)
 
-A production-grade, multi-tenant Discord news platform. VarthaBot fetches RSS news, processes content, and delivers it to thousands of Discord servers via a robust, cloud-managed infrastructure.
+A comprehensive, multi-tenant Discord news platform. VarthaBot fetches RSS news, processes content, and delivers it to thousands of Discord servers via a robust, cloud-managed SaaS infrastructure.
 
-## Table of Contents
+---
 
-- Overview
-- Architecture & Tech Stack
-- Core Infrastructure Features
-- Premium Platform Features
-- Setup and Installation
-- Environment Variables
-- Database Schema
-- Run Commands
-- Discord Setup & Commands
-- SaaS Control Panel
-- Recent Bug Fixes
-- Developer Details
-- License
+## 📜 Project Evolution History
 
-## Overview
+VarthaBot started as a small personal project and evolved into a full-scale SaaS platform.
 
-Transformed from a standalone bot into a SaaS platform, `vartha-bot-system` is built for reliable, scalable news delivery. It features isolated delivery queues, OAuth2 authentication, real-time logging, and Supabase PostgreSQL persistence.
+### **Phase 1: The Standalone MVP**
+The initial version was a single-guild bot that relied on hardcoded RSS links and a local `settings.json` file. It was designed for a single server and had no external management interface.
 
-## Architecture & Tech Stack
+### **Phase 2: Multi-Server Evolution**
+The bot was refactored to support multiple Discord servers independently. Data was stored in a keyed JSON format (`settings.json`, `feeds.json`, `seen.json`), allowing each server to have its own configuration. A basic dashboard was introduced for manual management.
+
+### **Phase 3: SaaS Transformation**
+To support public scaling, the bot transitioned into a SaaS platform. Local JSON files were removed in favor of **Supabase PostgreSQL**. **Discord OAuth2** was implemented to secure the dashboard, ensuring admins could only manage their own servers. **Socket.IO** was added for real-time log streaming.
+
+### **Phase 4: Premium UI & Production Hardening**
+The final evolution involved a total frontend rebuild using a **Vercel/Linear-inspired aesthetic**. The system was production-hardened with robust admin detection (Owner/Admin checks), isolated delivery queues, and staggered fetch cycles to prevent rate limits.
+
+---
+
+## 🗺️ Project Roadmap
+
+### **Completed (Milestones Reached)**
+- [x] Multi-server independent configuration.
+- [x] Migration from local JSON to Supabase PostgreSQL.
+- [x] Secure Discord OAuth2 Authentication for dashboard access.
+- [x] Real-time live log terminal via WebSockets.
+- [x] Fully responsive, mobile-first SaaS UI.
+- [x] Staggered fetch queue (500ms delay) for rate-limit protection.
+- [x] Isolated news cache per guild in-memory.
+- [x] Robust Admin detection logic (Owner/Admin/Manage Server).
+- [x] Global slash command registration with legacy cleanup.
+
+### **Future (Upcoming Features)**
+- [ ] **AI Summarization**: Optional per-guild feature to summarize long news articles using Gemini.
+- [ ] **Custom Embed Editor**: Allow admins to fully customize the news embed layout via the dashboard.
+- [ ] **Multilingual Support**: Expand beyond Malayalam and English to other Indian languages.
+- [ ] **Advanced Analytics**: Charts showing delivery performance and click-through rates.
+- [ ] **Premium Subscription Tiers**: Tiered limits for news frequency and feed counts.
+
+---
+
+## 💎 Core Platform Features
+
+- **Multi-Tenant Scalability**: Independent settings and feeds for every connected server.
+- **Enterprise-Grade UI**: A high-performance, professional dashboard for global management.
+- **Hybrid Failover**: Primary bot delivery with automatic per-guild webhook fallback.
+- **Live Monitoring**: Monitor bot health and view real-time terminal logs from any server.
+- **Automatic Sync**: Real-time synchronization of server names, icons, and status.
+
+---
+
+## 🛠️ Tech Stack
 
 - **Backend**: Node.js + Express
 - **Discord SDK**: `discord.js` v14
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Discord OAuth2 (`passport-discord`)
-- **Real-Time**: Socket.IO for live terminal logs
-- **Frontend**: Vanilla HTML5/CSS3 (No heavy frameworks, highly optimized SaaS UI)
-- **Scheduler**: `node-cron`
+- **Real-Time**: Socket.IO for live logs
+- **Frontend**: Vanilla HTML5/CSS3 (Optimized for performance)
+- **Runtime**: PM2 (Process Management)
 
-## Core Infrastructure Features
+---
 
-- **Multi-Tenant Scalability**: Fully isolated settings, feeds, and delivery queues for every connected server.
-- **Discord OAuth2**: Secure dashboard access. Users can only manage servers they own or administrate.
-- **PostgreSQL Persistence**: No local JSON files. Fully cloud-native database design.
-- **Real-Time Log Stream**: WebSocket-powered live terminal built into the dashboard.
-- **Hybrid Failover**: Primary bot delivery with automatic per-guild webhook fallback to ensure 100% uptime.
-- **Multi-Guild Stabilization**: Staggered fetch cycles with a 500ms delay per guild to prevent Discord API rate limits and CPU spikes.
-- **Robust Admin Detection**: Triple-layer permission check (Owner, Administrator, and Manage Server) via `GuildMembers` intent.
-
-## Premium Platform Features
-
-- **Professional Landing Page**: Detailed infrastructure storytelling with real-time system status indicators.
-- **Enterprise-Grade UI**: A dark-themed, high-performance dashboard styled after industry leaders like GitHub and Cloudflare.
-- **Cache-Busting Assets**: Ensures zero UI lag by forcing immediate updates of CSS and JS assets on the client-side.
-- **Global Guild Monitor**: Automatic live-sync with every Discord server the bot joins.
-
-## Setup and Installation
+## 📦 Installation & Deployment
 
 ### Prerequisites
-
 - Node.js 20+
 - A Discord Application (Bot Token + Client Secret)
-- A Supabase Project (URL + Anon Key)
+- A Supabase Project (URL + Service Role Key)
 
-### Install
-
+### 1. Install
 ```bash
 npm install
 ```
 
-### Configure environment
-
+### 2. Configure Environment
+Create a `.env` file from the example:
 ```bash
 cp .env.example .env
 ```
+Fill in your `DISCORD_TOKEN`, `CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`.
 
-Edit `.env`:
+### 3. Initialize Database
+Run the contents of `supabase_schema.sql` in your Supabase SQL Editor to create the required tables.
 
-```env
-DISCORD_TOKEN=your_bot_token
-CLIENT_ID=your_client_id
-DISCORD_CLIENT_SECRET=your_oauth_secret
-DISCORD_CALLBACK_URL=https://your-domain.com/auth/discord/callback
-SESSION_SECRET=a_very_secure_random_string
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your_public_anon_key
-PORT=3000
+### 4. Run
+```bash
+# Production
+npm start
+
+# Development
+npm run dev
+
+# Command Sync
+npm run register:commands
 ```
 
-## Database Schema
+---
 
-You must run the SQL schema in your Supabase project before starting the bot. The schema file `supabase_schema.sql` is provided in the repository root.
+## 📝 Changelog
 
-Simply copy the contents of `supabase_schema.sql` and execute it in the Supabase SQL Editor to create the necessary tables (`users`, `guilds`, `guild_settings`, `feeds`, `seen_articles`, `logs`).
+### **v2.5.0 (Latest)**
+- **Feature**: Added "Multi-Guild Stabilization" with staggered fetch cycles.
+- **Fix**: Resolved critical circular dependency between logger and Supabase client.
+- **Fix**: Isolated in-memory news cache per guild (zero data leakage).
+- **UI**: Completely rebuilt dashboard with mobile-responsive hamburger menu.
+- **Security**: Upgraded to `SUPABASE_SERVICE_ROLE_KEY` for secure backend access.
 
-## Run Commands
+### **v2.0.0**
+- **Migration**: Moved from JSON files to Supabase cloud database.
+- **Auth**: Implemented Discord OAuth2 login for dashboard security.
+- **Real-Time**: Added Socket.IO log streaming.
 
-- Start production: `npm start`
-- Start development: `npm run dev`
-- Register slash commands: `npm run register:commands`
+### **v1.5.0**
+- **Architecture**: Refactored core bot logic to support multiple servers.
+- **Feature**: Added `/setup` command for easy channel configuration.
 
-## Discord Setup & Commands
+### **v1.0.0**
+- Initial release as a standalone Malayalam RSS news bot.
 
-- `/setup channel:<#channel>`: Configure the target news channel (Admin/Owner only).
-- `/news`: Fetch latest news immediately.
-- `/info`: Show server-specific bot runtime details.
-- `/commands`: List all available commands.
-- `/clear`: Bulk delete messages.
-- `/reload`: Reload guild configuration.
+---
 
-## SaaS Control Panel
+## 👨‍💻 Developer Details
 
-URL: `https://your-domain.com/`
+- **Maintainer**: `chriz3656`
+- **Identity**: VarthaBot Infrastructure Group.
+- **Goal**: Reliable, scalable, and fast news automation.
 
-### Features
-- **OAuth Secured**: Login with Discord.
-- **Guild Management**: View and configure authorized guilds via modular cards.
-- **Real-time Status**: Monitor bot health, uptime, and last fetch times across the network.
-- **Live Terminal**: Watch your server's fetch and delivery cycle happen in real-time.
-- **Remote Configuration**: Update any server's feeds or filters instantly.
-
-## Recent Bug Fixes
-
-- **Migration Fix**: Corrected data retrieval logic to ensure guilds inherit global settings during the transition to Supabase.
-- **Queue Isolation**: Refactored the delivery queue to prevent "context leaking," ensuring news is never sent to the wrong channel.
-- **Frontend Stability**: Added defensive checks to the dashboard JS to prevent crashes on partial data loads.
-- **Syntax Cleanup**: Fixed illegal `continue` statements and code duplication in `server.js` and `bot.js`.
-
-## Developer Details
-
-- Maintainer: `chriz3656`
-- Focus: Scalable, production-grade news infrastructure.
-
-## License
-
-MIT
-
+## ⚖️ License
 
 MIT
