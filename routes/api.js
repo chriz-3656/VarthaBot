@@ -34,36 +34,64 @@ function createApiRouter(context) {
     return next;
   }
 
+  function isUserAdminOfGuild(req, guildId) {
+    if (guildId === 'GLOBAL') {
+      return req.user?.id === context.env.OWNER_ID;
+    }
+    const userGuild = req.user?.guilds?.find((g) => g.id === guildId);
+    if (!userGuild) return false;
+    // Check for Administrator (0x8) or Manage Guild (0x20)
+    return (userGuild.permissions & 0x8) === 0x8 || (userGuild.permissions & 0x20) === 0x20 || userGuild.owner;
+  }
+
   router.get('/guilds', async (req, res) => {
     try {
       const client = context.getClient();
-      const storedIds = await getAllGuildIds();
-      const liveIds = client?.guilds?.cache?.map((g) => g.id) || [];
+      const userGuilds = req.user?.guilds || [];
+      const botGuilds = client?.guilds?.cache;
 
-      // Unique combined list
-      const allIds = [...new Set(['GLOBAL', ...storedIds, ...liveIds])];
+      // Filter user guilds to those where they are admin
+      const adminGuildIds = userGuilds
+        .filter((g) => (g.permissions & 0x8) === 0x8 || (g.permissions & 0x20) === 0x20 || g.owner)
+        .map((g) => g.id);
 
-      const guilds = await Promise.all(allIds.map(async (id) => {
-        const settings = await getSettings(id);
-        let name = id === 'GLOBAL' ? 'System Defaults' : (settings.guildName || `Server ${id}`);
+      // Only show guilds where user is admin AND bot is present
+      const authorizedIds = adminGuildIds.filter((id) => botGuilds?.has(id));
 
-        // Try to get fresh name from client if possible
-        if (id !== 'GLOBAL' && client?.guilds?.cache?.has(id)) {
-          name = client.guilds.cache.get(id).name;
-        }
+      // Include GLOBAL only if user is the bot owner
+      const allIds = req.user?.id === context.env.OWNER_ID ? ['GLOBAL', ...authorizedIds] : authorizedIds;
 
-        return {
-          id,
-          name,
-          deliveryEnabled: settings.deliveryEnabled !== false,
-          channelId: settings.discordChannelId || ''
-        };
-      }));
+      const guilds = await Promise.all(
+        allIds.map(async (id) => {
+          const settings = await getSettings(id);
+          let name = id === 'GLOBAL' ? 'System Defaults' : (settings.guildName || `Server ${id}`);
+
+          if (id !== 'GLOBAL' && botGuilds?.has(id)) {
+            name = botGuilds.get(id).name;
+          }
+
+          return {
+            id,
+            name,
+            deliveryEnabled: settings.deliveryEnabled !== false,
+            channelId: settings.discordChannelId || ''
+          };
+        })
+      );
       res.json({ guilds });
     } catch (error) {
       logger.error('Failed to get guilds', { error: error.message });
       res.status(500).json({ ok: false, error: error.message });
     }
+  });
+
+  // Authorization Middleware for guild-specific requests
+  router.use((req, res, next) => {
+    const guildId = req.query.guildId || 'GLOBAL';
+    if (!isUserAdminOfGuild(req, guildId)) {
+      return res.status(403).json({ ok: false, error: 'Unauthorized: You do not have permission to manage this server.' });
+    }
+    next();
   });
 
   router.get('/news', (req, res) => {
