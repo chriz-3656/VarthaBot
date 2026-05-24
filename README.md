@@ -41,6 +41,7 @@ Transformed from a standalone bot into a SaaS platform, `vartha-bot-system` is b
 - **PostgreSQL Persistence**: No local JSON files. Fully cloud-native database design.
 - **Real-Time Log Stream**: WebSocket-powered live terminal built into the dashboard.
 - **Hybrid Failover**: Primary bot delivery with automatic per-guild webhook fallback to ensure 100% uptime.
+- **Multi-Guild Stabilization**: Staggered fetch cycles with a 500ms delay per guild to prevent Discord API rate limits and CPU spikes.
 - **Robust Admin Detection**: Triple-layer permission check (Owner, Administrator, and Manage Server) via `GuildMembers` intent.
 
 ## Premium Platform Features
@@ -128,5 +129,8 @@ URL: `https://your-domain.com/`
 - Focus: Scalable, production-grade news infrastructure.
 
 ## License
+
+MIT
+
 
 MIT
