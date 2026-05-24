@@ -44,6 +44,24 @@ function createApiRouter(context) {
     return (userGuild.permissions & 0x8) === 0x8 || (userGuild.permissions & 0x20) === 0x20 || userGuild.owner;
   }
 
+  router.get('/me', (req, res) => {
+    const client = context.getClient();
+    const botGuilds = client?.guilds?.cache;
+
+    res.json({
+      user: {
+        id: req.user?.id,
+        username: req.user?.username,
+        avatar: req.user?.avatar
+      },
+      guilds: req.user?.guilds?.filter(g => {
+        const isAdmin = (g.permissions & 0x8) === 0x8 || (g.permissions & 0x20) === 0x20 || g.owner;
+        const botInGuild = botGuilds?.has(g.id);
+        return isAdmin && botInGuild;
+      }) || []
+    });
+  });
+
   router.get('/guilds', async (req, res) => {
     try {
       const client = context.getClient();

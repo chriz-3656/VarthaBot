@@ -200,7 +200,8 @@ const apiContext = {
   stopDelivery: (guildId) => stopDelivery(guildId),
   getClient,
   startedAt: state.startedAt,
-  getLastRunAt: (guildId) => state.lastRunAt[guildId || 'GLOBAL'] || 0
+  getLastRunAt: (guildId) => state.lastRunAt[guildId || 'GLOBAL'] || 0,
+  env
 };
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -227,17 +228,6 @@ app.get('/', (_req, res) => {
   } else {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   }
-});
-
-app.get('/api/me', requireAuth, (req, res) => {
-  res.json({
-    user: {
-      id: req.user?.id,
-      username: req.user?.username,
-      avatar: req.user?.avatar
-    },
-    guilds: req.user?.guilds?.filter(g => (g.permissions & 0x8) === 0x8 || (g.permissions & 0x20) === 0x20 || g.owner) || []
-  });
 });
 
 server.listen(env.PORT, () => {
