@@ -106,6 +106,13 @@ function createApiRouter(context) {
   // Authorization Middleware for guild-specific requests
   router.use((req, res, next) => {
     const guildId = req.query.guildId || 'GLOBAL';
+    const isPublicPath = req.path === '/status' || req.path === '/news';
+    
+    // Allow public access to GLOBAL status/news for landing page pulse
+    if (isPublicPath && guildId === 'GLOBAL') {
+      return next();
+    }
+
     if (!isUserAdminOfGuild(req, guildId)) {
       return res.status(403).json({ ok: false, error: 'Unauthorized: You do not have permission to manage this server.' });
     }
