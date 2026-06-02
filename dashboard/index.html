@@ -5,24 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard | VarthaBot</title>
   <link rel="icon" type="image/png" href="https://i.ibb.co/XM44rgy/logo.png">
-  <link rel="stylesheet" href="/dashboard/style.css?v=1.0.4">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/dashboard/style.css?v=1.1.0">
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
   <aside class="sidebar">
-    <div class="sidebar-header">
+    <div class="sidebar-header heading-subsection">
       <img src="https://i.ibb.co/XM44rgy/logo.png" alt="Logo" style="height: 24px;">
-      VarthaBot
+      Vartha
     </div>
     
     <nav class="nav-menu">
-      <div class="nav-item active" data-target="overview">Overview</div>
-      <div class="nav-item" data-target="guilds">Guild Management</div>
-      <div class="nav-item" data-target="feeds">Feeds</div>
-      <div class="nav-item" data-target="delivery">Delivery Controls</div>
-      <div class="nav-item" data-target="logs">Live Logs</div>
+      <div class="nav-item text-sm active" data-target="overview">Overview</div>
+      <div class="nav-item text-sm" data-target="guilds">Guild Management</div>
+      <div class="nav-item text-sm" data-target="feeds">Feeds</div>
+      <div class="nav-item text-sm" data-target="delivery">Delivery Controls</div>
+      <div class="nav-item text-sm" data-target="logs">Live Logs</div>
     </nav>
 
     <div class="sidebar-footer">
@@ -30,12 +29,12 @@
         <img id="userAvatar" class="user-avatar" src="" alt="Avatar" style="display: none;">
         <div id="userAvatarFallback" class="user-avatar"></div>
         <div class="user-info">
-          <span id="userName" class="user-name">Loading...</span>
-          <a href="/auth/logout" class="logout-link">Logout</a>
+          <span id="userName" class="user-name text-sm">Loading...</span>
+          <a href="/auth/logout" class="logout-link text-sm">Logout</a>
         </div>
       </div>
       <div style="margin-top: 15px;">
-        <a href="/" style="font-size: 0.8rem; color: var(--text-secondary);">← Back to Website</a>
+        <a href="/" style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">← Back</a>
       </div>
     </div>
   </aside>
@@ -43,17 +42,17 @@
   <main class="main-content">
     <header class="topbar">
       <button id="mobileMenuBtn" class="mobile-menu-toggle">☰</button>
-      <h2 id="pageTitle" style="margin-left: 15px;">Overview</h2>
+      <h2 id="pageTitle" class="heading-subsection" style="margin-left: 15px; margin: 0;">Overview</h2>
       <div style="margin-left: auto; display: flex; align-items: center; gap: 15px;">
-        <span class="badge" id="globalStatusBadge" style="border-color: var(--success-color); color: var(--success-color);">API: Online</span>
-        <a href="https://discord.com/api/oauth2/authorize?client_id=1491712659211419730&permissions=8&scope=bot%20applications.commands" target="_blank" class="btn-primary" style="font-size: 0.8rem; padding: 6px 12px;">+ Add to Server</a>
+        <span class="badge text-sm" id="globalStatusBadge" style="border-color: var(--success-color); color: var(--success-color);">API: Online</span>
+        <a href="https://discord.com/api/oauth2/authorize?client_id=1491712659211419730&permissions=8&scope=bot%20applications.commands" target="_blank" class="btn-primary">+ Add to Server</a>
       </div>
     </header>
 
     <!-- Page: Overview -->
     <div class="page-container" id="page-overview">
       <div class="section-header">
-        <h3>System Infrastructure Status</h3>
+        <h3 class="heading-subsection">System Infrastructure Status</h3>
       </div>
       <div class="grid">
         <div class="card">
@@ -70,7 +69,7 @@
         </div>
       </div>
       <div class="section-header">
-        <h3>Global Feed Pulse</h3>
+        <h3 class="heading-subsection">Global Feed Pulse</h3>
       </div>
       <div id="overviewNewsList">
         <!-- Rendered via JS -->
@@ -80,8 +79,8 @@
     <!-- Page: Guilds -->
     <div class="page-container hidden" id="page-guilds">
       <div class="section-header">
-        <h3>Authorized Guilds</h3>
-        <p style="color: var(--text-secondary); font-size: 0.9rem;">Guilds where you have Management permissions.</p>
+        <h3 class="heading-subsection">Authorized Guilds</h3>
+        <p class="text-sm" style="color: var(--text-secondary);">Guilds where you have Management permissions.</p>
       </div>
       <div class="grid" id="guildGrid">
         <!-- Rendered via JS -->
@@ -91,13 +90,13 @@
     <!-- Page: Feeds -->
     <div class="page-container hidden" id="page-feeds">
       <div class="section-header">
-        <h3>Feed Management</h3>
-        <span class="badge" id="currentGuildFeedsBadge">System Defaults</span>
+        <h3 class="heading-subsection">Feed Management</h3>
+        <span class="badge text-sm" id="currentGuildFeedsBadge">System Defaults</span>
       </div>
       
-      <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--accent-color);">
-        <h4>Provision New Source</h4>
-        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px;">Add a standard RSS/XML feed to this guild's pipeline.</p>
+      <div class="card" style="margin-bottom: 20px; border-left: var(--border-width-thick) solid var(--accent-color);">
+        <h4 class="text-lg">Provision New Source</h4>
+        <p class="text-sm" style="color: var(--text-secondary); margin-bottom: 15px;">Add a standard RSS/XML feed to this guild's pipeline.</p>
         <form id="addFeedForm" style="display: flex; gap: 10px;">
           <input type="text" id="feedName" class="form-control" placeholder="Source Name (e.g. News18)" required>
           <input type="url" id="feedUrl" class="form-control" placeholder="RSS Feed URL" required>
@@ -113,14 +112,14 @@
     <!-- Page: Delivery -->
     <div class="page-container hidden" id="page-delivery">
       <div class="section-header">
-        <h3>Delivery Infrastructure</h3>
-        <span class="badge" id="currentGuildDeliveryBadge">System Defaults</span>
+        <h3 class="heading-subsection">Delivery Infrastructure</h3>
+        <span class="badge text-sm" id="currentGuildDeliveryBadge">System Defaults</span>
       </div>
 
       <div class="grid">
         <div class="card">
-          <h4>Active Status</h4>
-          <p id="deliveryStatusText" style="margin: 10px 0; font-weight: 600;">Loading...</p>
+          <h4 class="text-lg">Active Status</h4>
+          <p id="deliveryStatusText" class="text-base" style="margin: 10px 0;">Loading...</p>
           <div style="display: flex; gap: 10px;">
             <button id="btnStartDelivery" class="btn-primary">Enable Delivery</button>
             <button id="btnStopDelivery" class="btn-danger">Lock Delivery</button>
@@ -130,7 +129,7 @@
       </div>
 
       <div class="card">
-        <div class="card-title" style="margin-bottom: 20px; font-weight: 700; color: var(--text-primary);">Endpoint Configuration</div>
+        <div class="card-title" style="margin-bottom: 20px; font-weight: var(--font-weight-bold); color: var(--text-primary);">Endpoint Configuration</div>
         <form id="settingsForm">
           <div class="grid">
             <div class="form-group">
@@ -150,7 +149,7 @@
               <input type="text" id="includeKeywords" class="form-control" placeholder="keyword1, keyword2...">
             </div>
           </div>
-          <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+          <div style="margin-top: 20px; padding-top: 20px; border-top: var(--border-width-md) solid var(--border-color);">
             <button type="submit" class="btn-primary">Commit Settings</button>
           </div>
         </form>
@@ -160,8 +159,8 @@
     <!-- Page: Logs -->
     <div class="page-container hidden" id="page-logs">
       <div class="section-header">
-        <h3>Live Log Stream</h3>
-        <span class="badge" id="currentGuildLogsBadge">System Defaults</span>
+        <h3 class="heading-subsection">Live Log Stream</h3>
+        <span class="badge text-sm" id="currentGuildLogsBadge">System Defaults</span>
       </div>
       <div class="terminal" id="terminalLogs">
         <!-- Rendered via JS -->
@@ -170,6 +169,6 @@
 
   </main>
 
-  <script src="/dashboard/app.js?v=1.0.4"></script>
+  <script src="/dashboard/app.js?v=1.1.0"></script>
 </body>
 </html>

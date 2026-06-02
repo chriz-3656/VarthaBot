@@ -414,6 +414,73 @@ if (el.btnFetchNow) {
   });
 }
 
+// --- Mechanical Interactions (Dark Neo-brutalism) ---
+function initMechanicalInteractions() {
+  // Buttons: click-down animation
+  document.querySelectorAll('.btn-primary, .btn-secondary, .btn-danger').forEach(btn => {
+    btn.addEventListener('mousedown', () => {
+      btn.style.transform = 'translate(2px, 2px)';
+    });
+    
+    btn.addEventListener('mouseup', () => {
+      btn.style.transform = '';
+    });
+    
+    btn.addEventListener('mouseleave', () => {
+      btn.style.transform = '';
+    });
+  });
+
+  // Cards: lift animation on hover (CSS handles most, this ensures mobile works)
+  document.querySelectorAll('.card, .list-item').forEach(card => {
+    card.addEventListener('touchstart', () => {
+      card.style.transform = 'translate(-2px, -2px)';
+    });
+    
+    card.addEventListener('touchend', () => {
+      card.style.transform = '';
+    });
+  });
+
+  // Mobile menu button mechanical feedback
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('mousedown', function() {
+      this.style.transform = 'scale(0.95)';
+    });
+    
+    mobileMenuBtn.addEventListener('mouseup', function() {
+      this.style.transform = '';
+    });
+    
+    mobileMenuBtn.addEventListener('mouseleave', function() {
+      this.style.transform = '';
+    });
+  }
+
+  // Nav items: highlight on click
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('mousedown', function() {
+      this.style.transform = 'translate(1px, 1px)';
+    });
+    
+    item.addEventListener('mouseup', function() {
+      this.style.transform = '';
+    });
+  });
+
+  // Form controls: focus glow
+  document.querySelectorAll('.form-control').forEach(input => {
+    input.addEventListener('focus', function() {
+      this.style.borderWidth = '4px';
+    });
+    
+    input.addEventListener('blur', function() {
+      this.style.borderWidth = '2px';
+    });
+  });
+}
+
 // --- Boot ---
 async function boot() {
   await loadUserSession();
@@ -421,6 +488,7 @@ async function boot() {
   await loadGuilds();
   updateBadges();
   initSocket();
+  initMechanicalInteractions();
   await refreshGuildData();
 }
 
