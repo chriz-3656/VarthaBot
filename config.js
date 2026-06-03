@@ -153,6 +153,8 @@ module.exports = {
     OWNER_ID: process.env.OWNER_ID || '',
     SUPABASE_URL: process.env.SUPABASE_URL || '',
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+    LOG_VERBOSE: String(process.env.LOG_VERBOSE || 'false').toLowerCase() === 'true',
     PORT: Number(process.env.PORT || 3000)
   }
 };

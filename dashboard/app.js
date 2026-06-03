@@ -63,6 +63,11 @@ if (el.mobileMenuBtn) {
   });
 }
 
+// Initialize Lucide
+if (window.lucide) {
+  lucide.createIcons();
+}
+
 // --- Navigation ---
 el.navItems.forEach(item => {
   item.addEventListener('click', () => {

@@ -6,6 +6,7 @@
   <title>Dashboard | VarthaBot</title>
   <link rel="icon" type="image/png" href="https://i.ibb.co/XM44rgy/logo.png">
   <link rel="stylesheet" href="/dashboard/style.css?v=1.1.0">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
@@ -17,11 +18,21 @@
     </div>
     
     <nav class="nav-menu">
-      <div class="nav-item text-sm active" data-target="overview">Overview</div>
-      <div class="nav-item text-sm" data-target="guilds">Guild Management</div>
-      <div class="nav-item text-sm" data-target="feeds">Feeds</div>
-      <div class="nav-item text-sm" data-target="delivery">Delivery Controls</div>
-      <div class="nav-item text-sm" data-target="logs">Live Logs</div>
+      <div class="nav-item text-sm active" data-target="overview">
+        <i data-lucide="layout-dashboard"></i> Overview
+      </div>
+      <div class="nav-item text-sm" data-target="guilds">
+        <i data-lucide="server"></i> Guild Management
+      </div>
+      <div class="nav-item text-sm" data-target="feeds">
+        <i data-lucide="rss"></i> Feeds
+      </div>
+      <div class="nav-item text-sm" data-target="delivery">
+        <i data-lucide="send"></i> Delivery Controls
+      </div>
+      <div class="nav-item text-sm" data-target="logs">
+        <i data-lucide="terminal"></i> Live Logs
+      </div>
     </nav>
 
     <div class="sidebar-footer">

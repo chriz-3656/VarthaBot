@@ -230,6 +230,13 @@ app.get('/', (_req, res) => {
   }
 });
 
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    logger.error(`Port ${env.PORT} is already in use. Please stop other instances of the bot or change the PORT in .env.`);
+    process.exit(1);
+  }
+});
+
 server.listen(env.PORT, () => {
   logger.info(`Dashboard/API server running on http://localhost:${env.PORT}`);
 });
@@ -240,6 +247,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception thrown:', { error: error.message, stack: error.stack });
+  process.exit(1);
 });
 
 cron.schedule('* * * * *', async () => {

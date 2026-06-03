@@ -6,7 +6,8 @@
   <title>VarthaBot | Smart Malayalam News Infrastructure for Discord</title>
   <link rel="stylesheet" href="/style.css?v=1.0.4">
   <link rel="icon" type="image/png" href="https://i.ibb.co/XM44rgy/logo.png">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
   <div class="status-strip">
@@ -56,17 +57,17 @@
     <section id="features" class="container section">
       <div class="feature-grid">
         <div class="feature-card">
-          <div class="card-icon">📡</div>
+          <div class="card-icon"><i data-lucide="rss"></i></div>
           <h3>Malayalam Native</h3>
           <p>Expertly tuned for Malayalam font rendering and local RSS sources. Deliver news in the language your community loves.</p>
         </div>
         <div class="feature-card">
-          <div class="card-icon">⚡</div>
+          <div class="card-icon"><i data-lucide="zap"></i></div>
           <h3>Real-Time Pipeline</h3>
           <p>High-frequency fetching with deduplication. Your server stays updated without duplicate notifications.</p>
         </div>
         <div class="feature-card">
-          <div class="card-icon">🔒</div>
+          <div class="card-icon"><i data-lucide="shield"></i></div>
           <h3>Infrastructure-First</h3>
           <p>Powered by Supabase PostgreSQL and Node.js. Built for stability, speed, and massive server counts.</p>
         </div>
@@ -175,6 +176,9 @@
             document.body.classList.remove('no-scroll');
         });
     });
+
+    // Initialize Lucide
+    lucide.createIcons();
   </script>
 </body>
 </html>
