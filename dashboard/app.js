@@ -89,6 +89,29 @@ el.navItems.forEach(item => {
   });
 });
 
+// --- Notifications ---
+function showNotification(message, type = 'success') {
+  let container = document.querySelector('.notification-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.className = 'notification-container';
+    document.body.appendChild(container);
+  }
+
+  const notif = document.createElement('div');
+  notif.className = `notification ${type}`;
+  notif.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}"></i> ${escapeHtml(message)}`;
+  
+  container.appendChild(notif);
+  if (window.lucide) lucide.createIcons({ root: notif });
+
+  setTimeout(() => {
+    notif.style.opacity = '0';
+    notif.style.transform = 'translateX(100%)';
+    setTimeout(() => notif.remove(), 300);
+  }, 3000);
+}
+
 // --- API Helpers ---
 async function request(path, options = {}) {
   const separator = path.includes('?') ? '&' : '?';
@@ -177,6 +200,9 @@ async function loadUserSession() {
 }
 
 async function loadOverview() {
+  if (el.overviewNewsList) el.overviewNewsList.innerHTML = '<div class="loading-state"><i data-lucide="loader"></i><h4>Loading Pipeline</h4></div>';
+  if (window.lucide) lucide.createIcons({ root: el.overviewNewsList });
+  
   try {
     const status = await request('/status');
     const news = await request('/news');
@@ -195,51 +221,66 @@ async function loadOverview() {
     if (el.overviewNewsList) {
       el.overviewNewsList.innerHTML = '';
       if (!news.items || news.items.length === 0) {
-        el.overviewNewsList.innerHTML = '<div class="card"><p style="color:var(--text-secondary); text-align:center;">No news articles in pipeline cache.</p></div>';
+        el.overviewNewsList.innerHTML = '<div class="empty-state"><i data-lucide="inbox"></i><h4>Pipeline Empty</h4><p>No news articles currently cached.</p></div>';
       } else {
         (news.items || []).slice(0, 5).forEach(item => {
           const node = document.createElement('div');
           node.className = 'list-item';
           node.innerHTML = `
-            <div class="list-item-content">
-              <h4>${escapeHtml(item.title)}</h4>
-              <p>${escapeHtml(item.source)} • ${new Date(item.pubDate).toLocaleString()}</p>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <div class="list-item-title">${escapeHtml(item.title)}</div>
+              <div class="list-item-meta">${escapeHtml(item.source)} • ${new Date(item.pubDate).toLocaleString()}</div>
             </div>
           `;
           el.overviewNewsList.appendChild(node);
         });
       }
+      if (window.lucide) lucide.createIcons({ root: el.overviewNewsList });
     }
-
   } catch (error) {
+    if (el.overviewNewsList) el.overviewNewsList.innerHTML = '<div class="error-state"><i data-lucide="alert-triangle"></i><h4>Failed to Load</h4><p>Could not load overview data.</p></div>';
+    if (window.lucide) lucide.createIcons({ root: el.overviewNewsList });
     console.error('Error loading overview', error);
   }
 }
 
 async function loadGuilds() {
+  if (el.guildGrid) el.guildGrid.innerHTML = '<div class="loading-state" style="grid-column: 1/-1;"><i data-lucide="loader"></i><h4>Loading Guilds</h4></div>';
+  if (window.lucide) lucide.createIcons({ root: el.guildGrid });
+  
   try {
     const { guilds } = await request('/guilds');
     if (!el.guildGrid) return;
     el.guildGrid.innerHTML = '';
 
+    if (!guilds || guilds.length === 0) {
+       el.guildGrid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><i data-lucide="server-off"></i><h4>No Guilds Found</h4><p>You have not authorized the bot in any guilds where you hold management permissions.</p></div>';
+       if (window.lucide) lucide.createIcons({ root: el.guildGrid });
+       return;
+    }
+
     guilds.forEach(g => {
       const node = document.createElement('div');
-      node.className = `card guild-card ${g.id === currentGuildId ? 'active' : ''}`;
+      node.className = `card elevated ${g.id === currentGuildId ? 'active' : ''}`;
+      if (g.id === currentGuildId) node.style.borderColor = 'var(--accent-color)';
       node.onclick = () => selectGuild(g.id, g.name);
+      node.style.cursor = 'pointer';
 
       node.innerHTML = `
-        <div class="guild-header">
-          <div class="guild-icon">${g.name.charAt(0)}</div>
-          <div class="guild-name">${escapeHtml(g.name)}</div>
+        <div class="card-header">
+          <div class="card-title" style="color:var(--text-primary); font-size:0.9rem;">${escapeHtml(g.name)}</div>
+          <span class="status-indicator ${g.deliveryEnabled ? 'success' : 'danger'}"><i data-lucide="${g.deliveryEnabled ? 'activity' : 'pause-circle'}" style="width:12px;height:12px;"></i> ${g.deliveryEnabled ? 'Active' : 'Disabled'}</span>
         </div>
-        <div style="display:flex; justify-content: space-between; align-items:center; gap: 10px; flex-wrap: wrap;">
-          <span style="font-size:0.75rem; color:var(--text-secondary)">ID: ${g.id === 'GLOBAL' ? 'Default' : g.id}</span>
-          <span class="badge ${g.deliveryEnabled ? 'success' : 'danger'}">${g.deliveryEnabled ? 'Active' : 'Disabled'}</span>
+        <div style="margin-top:auto; padding-top:16px;">
+          <span style="font-size:0.75rem; color:var(--text-secondary); font-family:var(--font-mono);">ID: ${g.id === 'GLOBAL' ? 'Default' : g.id}</span>
         </div>
       `;
       el.guildGrid.appendChild(node);
     });
+    if (window.lucide) lucide.createIcons({ root: el.guildGrid });
   } catch (error) {
+    if (el.guildGrid) el.guildGrid.innerHTML = '<div class="error-state" style="grid-column: 1/-1;"><i data-lucide="alert-triangle"></i><h4>Failed to Load</h4><p>Could not fetch your guilds.</p></div>';
+    if (window.lucide) lucide.createIcons({ root: el.guildGrid });
     console.error('Error loading guilds', error);
   }
 }
@@ -254,6 +295,9 @@ function selectGuild(id, name) {
 }
 
 async function refreshGuildData() {
+  if (el.feedList) el.feedList.innerHTML = '<div class="loading-state"><i data-lucide="loader"></i><h4>Loading Configuration</h4></div>';
+  if (window.lucide) lucide.createIcons({ root: el.feedList });
+  
   try {
     const [feeds, settings, logs, status] = await Promise.all([
       request('/feeds'),
@@ -266,24 +310,28 @@ async function refreshGuildData() {
     if (el.feedList) {
       el.feedList.innerHTML = '';
       if (!feeds.items || feeds.items.length === 0) {
-        el.feedList.innerHTML = '<div class="card"><p style="color:var(--text-secondary); text-align:center;">No feeds configured for this guild.</p></div>';
+        el.feedList.innerHTML = '<div class="empty-state"><i data-lucide="rss"></i><h4>No Sources</h4><p>You have not configured any RSS sources for this guild.</p></div>';
       } else {
         (feeds.items || []).forEach(feed => {
           const node = document.createElement('div');
           node.className = 'list-item';
           node.innerHTML = `
-            <div class="list-item-content">
-              <h4>${escapeHtml(feed.name)}</h4>
-              <p style="word-break: break-all;">${escapeHtml(feed.url)}</p>
+            <div style="display:flex; flex-direction:column; gap:4px; max-width:60%;">
+              <div class="list-item-title" style="display:flex; align-items:center; gap:8px;">
+                ${escapeHtml(feed.name)}
+                ${feed.enabled ? '<span class="status-indicator success" style="padding:2px 4px; font-size:0.6rem;"><i data-lucide="check" style="width:10px;height:10px;"></i></span>' : '<span class="status-indicator danger" style="padding:2px 4px; font-size:0.6rem;"><i data-lucide="x" style="width:10px;height:10px;"></i></span>'}
+              </div>
+              <div class="list-item-meta" style="word-break: break-all;">${escapeHtml(feed.url)}</div>
             </div>
-            <div class="list-item-actions">
-              <button class="btn-secondary" data-action="toggle" data-id="${feed.id}">${feed.enabled ? 'Disable' : 'Enable'}</button>
-              <button class="btn-danger" data-action="remove" data-id="${feed.id}">Delete</button>
+            <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+              <button class="btn-secondary" style="padding:6px 12px; font-size:0.7rem;" data-action="toggle" data-id="${feed.id}"><i data-lucide="${feed.enabled ? 'pause' : 'play'}"></i> ${feed.enabled ? 'Disable' : 'Enable'}</button>
+              <button class="btn-danger" style="padding:6px 12px; font-size:0.7rem;" data-action="remove" data-id="${feed.id}"><i data-lucide="trash-2"></i> Delete</button>
             </div>
           `;
           el.feedList.appendChild(node);
         });
       }
+      if (window.lucide) lucide.createIcons({ root: el.feedList });
     }
 
     // Render Settings
@@ -298,9 +346,10 @@ async function refreshGuildData() {
     // Render Status
     if (el.deliveryStatusText) {
       const deliveryEnabled = status.deliveryEnabled !== false;
-      el.deliveryStatusText.textContent = deliveryEnabled ? 'Delivery is currently ACTIVE.' : 'Delivery is currently DISABLED.';
-      if (el.btnStartDelivery) el.btnStartDelivery.disabled = deliveryEnabled;
-      if (el.btnStopDelivery) el.btnStopDelivery.disabled = !deliveryEnabled;
+      el.deliveryStatusText.innerHTML = deliveryEnabled ? '<span class="status-indicator success"><i data-lucide="activity"></i> Active</span>' : '<span class="status-indicator danger"><i data-lucide="pause-circle"></i> Disabled</span>';
+      if (el.btnStartDelivery) el.btnStartDelivery.style.display = deliveryEnabled ? 'none' : 'inline-flex';
+      if (el.btnStopDelivery) el.btnStopDelivery.style.display = !deliveryEnabled ? 'none' : 'inline-flex';
+      if (window.lucide) lucide.createIcons({ root: el.deliveryStatusText.parentElement });
     }
 
     // Render Logs (initial payload)
@@ -310,6 +359,8 @@ async function refreshGuildData() {
     }
 
   } catch (error) {
+    if (el.feedList) el.feedList.innerHTML = '<div class="error-state"><i data-lucide="alert-triangle"></i><h4>Configuration Error</h4><p>Failed to load configuration data.</p></div>';
+    if (window.lucide) lucide.createIcons({ root: el.feedList });
     console.error('Error refreshing guild data', error);
   }
 }
@@ -324,33 +375,37 @@ if (el.addFeedForm) {
         body: JSON.stringify({ name: el.feedName.value, url: el.feedUrl.value })
       });
       el.addFeedForm.reset();
+      showNotification('Source provisioned to pipeline.', 'success');
       refreshGuildData();
     } catch (error) {
-      alert(error.message);
+      showNotification(error.message, 'error');
     }
   });
 }
 
 if (el.feedList) {
   el.feedList.addEventListener('click', async (e) => {
-    if (e.target.tagName !== 'BUTTON') return;
-    const id = e.target.dataset.id;
-    const action = e.target.dataset.action;
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
 
     try {
       if (action === 'remove') {
         if (!confirm('Are you sure you want to remove this feed?')) return;
         await request(`/feeds/${id}`, { method: 'DELETE' });
+        showNotification('Source removed.', 'success');
       } else if (action === 'toggle') {
-        const isDisable = e.target.textContent === 'Disable';
+        const isDisable = btn.textContent.includes('Disable');
         await request(`/feeds/${id}`, {
           method: 'PATCH',
           body: JSON.stringify({ enabled: !isDisable })
         });
+        showNotification(`Source ${!isDisable ? 'disabled' : 'enabled'}.`, 'success');
       }
       refreshGuildData();
     } catch (error) {
-      alert(error.message);
+      showNotification(error.message, 'error');
     }
   });
 }
@@ -372,10 +427,10 @@ if (el.settingsForm) {
         body: JSON.stringify(payload)
       });
       settingsDirty = false;
-      alert('Settings saved successfully.');
+      showNotification('Settings committed successfully.', 'success');
       refreshGuildData();
     } catch (error) {
-      alert(error.message);
+      showNotification(error.message, 'error');
     }
   });
 }
@@ -384,9 +439,10 @@ if (el.btnStartDelivery) {
   el.btnStartDelivery.addEventListener('click', async () => {
     try {
       await request('/delivery/start', { method: 'POST' });
+      showNotification('Delivery pipeline activated.', 'success');
       refreshGuildData();
     } catch (error) {
-      alert(error.message);
+      showNotification(error.message, 'error');
     }
   });
 }
@@ -395,94 +451,31 @@ if (el.btnStopDelivery) {
   el.btnStopDelivery.addEventListener('click', async () => {
     try {
       await request('/delivery/stop', { method: 'POST' });
+      showNotification('Delivery pipeline locked.', 'warning');
       refreshGuildData();
     } catch (error) {
-      alert(error.message);
+      showNotification(error.message, 'error');
     }
   });
 }
 
 if (el.btnFetchNow) {
   el.btnFetchNow.addEventListener('click', async () => {
+    const originalText = el.btnFetchNow.innerHTML;
     el.btnFetchNow.disabled = true;
-    el.btnFetchNow.textContent = 'Fetching...';
+    el.btnFetchNow.innerHTML = '<i data-lucide="loader" class="spin"></i> Executing...';
+    if (window.lucide) lucide.createIcons({ root: el.btnFetchNow });
     try {
       const res = await request('/fetch', { method: 'POST' });
-      alert(`Fetch cycle initiated.\nFetched: ${res.result?.fetched || 0} items.`);
+      showNotification(`Fetch cycle initiated. Extracted ${res.result?.fetched || 0} items.`, 'success');
       refreshGuildData();
     } catch (error) {
-      alert(error.message);
+      showNotification(error.message, 'error');
     } finally {
       el.btnFetchNow.disabled = false;
-      el.btnFetchNow.textContent = 'Test Pipeline';
+      el.btnFetchNow.innerHTML = originalText;
+      if (window.lucide) lucide.createIcons({ root: el.btnFetchNow });
     }
-  });
-}
-
-// --- Mechanical Interactions (Dark Neo-brutalism) ---
-function initMechanicalInteractions() {
-  // Buttons: click-down animation
-  document.querySelectorAll('.btn-primary, .btn-secondary, .btn-danger').forEach(btn => {
-    btn.addEventListener('mousedown', () => {
-      btn.style.transform = 'translate(2px, 2px)';
-    });
-    
-    btn.addEventListener('mouseup', () => {
-      btn.style.transform = '';
-    });
-    
-    btn.addEventListener('mouseleave', () => {
-      btn.style.transform = '';
-    });
-  });
-
-  // Cards: lift animation on hover (CSS handles most, this ensures mobile works)
-  document.querySelectorAll('.card, .list-item').forEach(card => {
-    card.addEventListener('touchstart', () => {
-      card.style.transform = 'translate(-2px, -2px)';
-    });
-    
-    card.addEventListener('touchend', () => {
-      card.style.transform = '';
-    });
-  });
-
-  // Mobile menu button mechanical feedback
-  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-  if (mobileMenuBtn) {
-    mobileMenuBtn.addEventListener('mousedown', function() {
-      this.style.transform = 'scale(0.95)';
-    });
-    
-    mobileMenuBtn.addEventListener('mouseup', function() {
-      this.style.transform = '';
-    });
-    
-    mobileMenuBtn.addEventListener('mouseleave', function() {
-      this.style.transform = '';
-    });
-  }
-
-  // Nav items: highlight on click
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('mousedown', function() {
-      this.style.transform = 'translate(1px, 1px)';
-    });
-    
-    item.addEventListener('mouseup', function() {
-      this.style.transform = '';
-    });
-  });
-
-  // Form controls: focus glow
-  document.querySelectorAll('.form-control').forEach(input => {
-    input.addEventListener('focus', function() {
-      this.style.borderWidth = '4px';
-    });
-    
-    input.addEventListener('blur', function() {
-      this.style.borderWidth = '2px';
-    });
   });
 }
 
@@ -493,7 +486,6 @@ async function boot() {
   await loadGuilds();
   updateBadges();
   initSocket();
-  initMechanicalInteractions();
   await refreshGuildData();
 }
 
