@@ -31,7 +31,7 @@ function toNumber(value, fallback) {
 function normalizeSettings(settings = {}) {
   return {
     embedStyle: settings.embedStyle || 'card',
-    accentColor: settings.accentColor || '#7C3AED',
+    accentColor: settings.accentColor || '#FF5A1F',
     enableImages: settings.enableImages !== false,
     descriptionLength: Math.min(Math.max(toNumber(settings.descriptionLength, 200), 80), 600),
     enableCategoryTags: settings.enableCategoryTags !== false,

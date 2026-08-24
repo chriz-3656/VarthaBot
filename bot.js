@@ -284,7 +284,7 @@ async function initBot(options = {}) {
         const cached = getNewsCache(guildId).length;
 
         const infoEmbed = {
-          color: 0x7c3aed,
+          color: 0xff5a1f,
           title: 'വാർത്ത ബോട്ട് • Info',
           description: `Bot runtime and details for this ${interaction.inGuild() ? 'server' : 'DM'}`,
           fields: [
@@ -315,7 +315,7 @@ async function initBot(options = {}) {
       if (interaction.commandName === 'commands') {
         const settings = await getSettings(guildId);
         const previewEmbed = {
-          color: 0x38bdf8,
+          color: 0x3f7c8c,
           title: 'വാർത്ത ബോട്ട് 📡 Command Preview',
           description: 'Available commands and quick usage',
           fields: [

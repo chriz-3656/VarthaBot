@@ -3,35 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VarthaBot | Smart Malayalam News Infrastructure for Discord</title>
-  <link rel="stylesheet" href="/style.css?v=1.0.4">
-  <link rel="icon" type="image/png" href="https://i.ibb.co/XM44rgy/logo.png">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <title>VarthaBot V2 | Master Editorial Infrastructure</title>
+  <link rel="stylesheet" href="style.css?v=2.0.0">
+  <link rel="icon" type="image/png" href="https://i.ibb.co/0p16YnsL/file-0000000043c8821191fe83b3ff744816.png">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
   <div class="status-strip">
     <div class="status-item"><span class="pulse"></span> System Operational</div>
     <div class="status-item" id="globalGuildCount">Monitoring 5+ Servers</div>
-    <div class="status-item">Latest News: Just Now</div>
+    <div class="status-item">Latest Broadcast: Just Now</div>
   </div>
 
   <header class="navbar">
     <div class="nav-container">
-      <div class="nav-brand">
-          <img src="https://i.ibb.co/XM44rgy/logo.png" alt="VarthaBot Logo">
-          <span>VarthaBot</span>
-      </div>
-      
-      <button class="mobile-toggle" aria-label="Toggle Menu" id="mobileMenuBtn">
-        <span class="bar"></span>
-        <span class="bar"></span>
-        <span class="bar"></span>
-      </button>
-
+      <a href="/" class="nav-brand">
+          <img src="https://i.ibb.co/0p16YnsL/file-0000000043c8821191fe83b3ff744816.png" alt="VarthaBot Logo">
+          VarthaBot <span style="font-size:0.65rem; background:var(--orange-primary); color:var(--bg-base); padding:2px 6px; border-radius:4px; font-weight:800; transform:translateY(-2px); margin-left: 4px;">V2</span>
+      </a>
       <nav class="nav-links" id="navLinks">
         <a href="#features">Features</a>
-        <a href="#infrastructure">Infrastructure</a>
         <a href="#docs">Docs</a>
         <div class="nav-actions">
           <a href="/dashboard/" class="btn-secondary">Dashboard</a>
@@ -42,142 +34,181 @@
   </header>
 
   <main>
+    <!-- Hero -->
     <section class="hero container">
-      <div class="hero-content">
-        <img src="https://i.ibb.co/XM44rgy/logo.png" alt="VarthaBot" class="hero-logo">
-        <h1>Smart Malayalam News<br><span class="hero-highlight">Infrastructure</span></h1>
-        <p>Real-time RSS intelligence, enterprise-grade multi-server management, and a centralized SaaS infrastructure designed for scale.</p>
-        <div class="hero-actions">
-          <a href="/auth/discord" class="btn-primary">Start Scaling Now <i data-lucide="arrow-right"></i></a>
-          <a href="https://github.com/chriz-3656/VarthaBot" class="btn-secondary">View on GitHub <i data-lucide="github"></i></a>
+      <img src="https://i.ibb.co/0p16YnsL/file-0000000043c8821191fe83b3ff744816.png" alt="VarthaBot" class="hero-logo">
+      <h1>The digital newsroom <br>for <span class="hero-highlight">modern servers.</span></h1>
+      <p>Automate your news delivery with intelligent RSS pipelines, deduplication, and a premium editorial Discord experience.</p>
+      <div class="hero-actions">
+        <a href="/auth/discord" class="btn-primary">Add to Discord <i data-lucide="arrow-right"></i></a>
+        <a href="https://github.com/chriz-3656/VarthaBot" class="btn-secondary">View Source <i data-lucide="github"></i></a>
+      </div>
+    </section>
+
+    <!-- Marquee Ticker -->
+    <div class="marquee-container">
+        <div class="marquee-content">
+            <!-- First Set -->
+            <div style="display:flex; align-items:center; gap:40px;">
+                <span>Continuous Polling</span> <i data-lucide="radio"></i>
+                <span>Smart Deduplication</span> <i data-lucide="filter"></i>
+                <span>Multi-Guild Support</span> <i data-lucide="server"></i>
+                <span>Editorial Embeds</span> <i data-lucide="layout-template"></i>
+                <span>Lightning Fast</span> <i data-lucide="zap"></i>
+            </div>
+            <!-- Duplicated for seamless loop -->
+            <div style="display:flex; align-items:center; gap:40px;">
+                <span>Continuous Polling</span> <i data-lucide="radio"></i>
+                <span>Smart Deduplication</span> <i data-lucide="filter"></i>
+                <span>Multi-Guild Support</span> <i data-lucide="server"></i>
+                <span>Editorial Embeds</span> <i data-lucide="layout-template"></i>
+                <span>Lightning Fast</span> <i data-lucide="zap"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- About / How it Works -->
+    <section id="about" class="container section">
+        <div class="about-grid">
+            <div class="about-text">
+                <h3 style="color: var(--teal-light); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; margin-bottom: 10px;">The Purpose</h3>
+                <h3>Bridging the gap between journalism and Discord.</h3>
+                <p>Traditional news delivery on Discord is chaotic. Webhooks often spam duplicate articles, lack proper formatting, and overwhelm server members.</p>
+                <p>VarthaBot was purpose-built to solve this. We act as a highly intelligent middleware that intercepts raw RSS feeds, cleans the data, formats it into a premium editorial layout, and delivers it to your community seamlessly.</p>
+                <a href="#features" class="btn-secondary" style="margin-top: 15px;">Explore Features</a>
+            </div>
+            
+            <div class="step-list">
+                <div class="step-item">
+                    <div class="step-number">01</div>
+                    <div class="step-content">
+                        <h4>Fetch & Ingest</h4>
+                        <p>Our distributed engine continuously monitors your configured RSS feeds for new publications without hitting rate limits.</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">02</div>
+                    <div class="step-content">
+                        <h4>Filter & Deduplicate</h4>
+                        <p>Every article is cross-referenced against your server's history to prevent duplicate postings, and checked against your custom keyword filters.</p>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">03</div>
+                    <div class="step-content">
+                        <h4>Format & Broadcast</h4>
+                        <p>The raw data is transformed into our signature dark-theme editorial embeds and instantly broadcasted to your designated Discord channel.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Discord Mockup -->
+    <section class="container section" style="padding-top: 80px; padding-bottom: 80px; border-bottom: none;">
+      <div class="mockup-container">
+        <div class="mockup-header">
+            <div class="mac-dot" style="background:var(--error);"></div>
+            <div class="mac-dot" style="background:var(--warning);"></div>
+            <div class="mac-dot" style="background:var(--success);"></div>
+        </div>
+        <div class="mockup-body">
+            <div class="chat-msg">
+                <div class="avatar" style="background: var(--surface-elevated);"><i data-lucide="user" style="color:var(--text-muted);"></i></div>
+                <div>
+                    <div style="color:var(--text-primary); font-weight:700;">Server Admin <span style="color:var(--text-muted); font-size:0.8rem; font-weight:500; margin-left:8px;">Today at 10:23 AM</span></div>
+                    <div style="color:var(--text-secondary); font-size:0.95rem;">/news fetch</div>
+                </div>
+            </div>
+            
+            <div class="chat-msg" style="margin-top: 20px;">
+                <div class="avatar" style="background: var(--orange-primary);"><img src="https://i.ibb.co/0p16YnsL/file-0000000043c8821191fe83b3ff744816.png" style="width: 24px; height: 24px; filter: brightness(0) invert(1);" alt="VarthaBot"></div>
+                <div>
+                    <div style="color:var(--text-primary); font-weight:700;">VarthaBot <span style="background:var(--teal-primary); font-size:0.6rem; padding:2px 6px; border-radius:4px; margin-left:4px; color:var(--text-primary);">APP</span> <span style="color:var(--text-muted); font-size:0.8rem; font-weight:500; margin-left:8px;">Today at 10:23 AM</span></div>
+                    <div class="discord-embed">
+                        <div class="embed-provider">MATHRUBHUMI NEWS</div>
+                        <div class="embed-title">New AI Hub opens in Kochi with state backing</div>
+                        <div class="embed-img"><i data-lucide="image" style="width: 48px; height: 48px; color: var(--teal-accent);"></i></div>
+                        <div class="embed-desc">The initiative aims to create 10,000 jobs by 2028, focusing heavily on natural language processing for regional languages. State government allocates initial ₹500Cr budget for the first phase of the development cycle.</div>
+                        <div class="embed-buttons">
+                            <button class="embed-btn">🔗 Read Full Article</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
       </div>
     </section>
 
+    <!-- Features -->
     <section id="features" class="container section">
+      <div class="section-title">
+          <h2>Engineered for Scale</h2>
+          <p>Everything you need to automate a professional digital newsroom directly inside your Discord server.</p>
+      </div>
       <div class="feature-grid">
-        <div class="feature-card">
-          <div class="card-icon"><i data-lucide="rss"></i></div>
-          <h3>Malayalam Native</h3>
-          <p>Expertly tuned for Malayalam font rendering and local RSS sources. Deliver news in the language your community loves.</p>
-        </div>
         <div class="feature-card">
           <div class="card-icon"><i data-lucide="zap"></i></div>
           <h3>Real-Time Pipeline</h3>
-          <p>High-frequency fetching with deduplication. Your server stays updated without duplicate notifications.</p>
+          <p>Our fetch engine pings your favorite RSS sources continuously. Combined with a smart deduplication algorithm, your server gets the news the second it breaks without spam.</p>
         </div>
         <div class="feature-card">
-          <div class="card-icon"><i data-lucide="shield"></i></div>
-          <h3>Infrastructure-First</h3>
-          <p>Powered by Supabase PostgreSQL and Node.js. Built for stability, speed, and massive server counts.</p>
+          <div class="card-icon"><i data-lucide="filter"></i></div>
+          <h3>Advanced Filtering</h3>
+          <p>Take full control over what gets delivered. Set specific keyword filters so your community only receives news alerts that are actually relevant to them.</p>
+        </div>
+        <div class="feature-card">
+          <div class="card-icon"><i data-lucide="server"></i></div>
+          <h3>Multi-Server Architecture</h3>
+          <p>Manage dozens of communities effortlessly. Each Discord server gets its own isolated settings, feeds, and delivery queues managed independently.</p>
+        </div>
+        <div class="feature-card">
+          <div class="card-icon"><i data-lucide="layout-dashboard"></i></div>
+          <h3>Intuitive Dashboard</h3>
+          <p>No need to memorize complex commands. Manage all your RSS feeds, delivery channels, and view real-time operational logs through our premium web console.</p>
         </div>
       </div>
     </section>
 
-    <section id="infrastructure" class="bg-surface section">
-      <div class="container">
-        <div class="section-title">
-            <h2>Scalable Architecture</h2>
-            <p>Enterprise features available for every server administrator.</p>
-        </div>
-        <div class="grid">
-            <div class="card">
-                <h3>Cloud Managed</h3>
-                <p>Settings are stored in the cloud. No local config loss, ever.</p>
-            </div>
-            <div class="card">
-                <h3>OAuth2 Secured</h3>
-                <p>Role-based access ensure only authorized admins manage the bot.</p>
-            </div>
-            <div class="card">
-                <h3>Isolated Queues</h3>
-                <p>Each server has its own dedicated delivery and filter engine.</p>
-            </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="docs" class="container section">
-      <div class="section-title">
-          <h2>Command Documentation</h2>
-      </div>
-      <div class="docs-grid">
-          <div class="doc-category">
-              <h4>Setup & Config</h4>
-              <ul>
-                  <li><code>/setup</code> - Link a channel for auto-delivery.</li>
-                  <li><code>/stop</code> - Disable automated news delivery.</li>
-                  <li><code>/reload</code> - Sync cloud settings with Discord.</li>
-                  <li><code>/info</code> - View runtime performance metrics.</li>
-              </ul>
-          </div>          <div class="doc-category">
-              <h4>Management</h4>
-              <ul>
-                  <li><code>/news</code> - Trigger an on-demand fetch cycle.</li>
-                  <li><code>/clear</code> - Bulk prune news messages.</li>
-                  <li><code>/commands</code> - Full capability overview.</li>
-              </ul>
-          </div>
-      </div>
-    </section>
   </main>
 
   <footer class="footer">
     <div class="container footer-grid">
-      <div class="footer-brand">
-        <div class="brand-text">VarthaBot Platform</div>
-        <p>Professional Malayalam News Infrastructure.</p>
+      <div>
+        <div class="brand-text">VarthaBot</div>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">The professional digital newsroom infrastructure for Discord.</p>
+        <div style="display: flex; gap: 15px; color: var(--text-muted);">
+            <i data-lucide="twitter"></i>
+            <i data-lucide="github"></i>
+            <i data-lucide="discord"></i>
+        </div>
       </div>
-      <div class="footer-links">
-        <div class="footer-col">
-            <h5>Developer</h5>
-            <a href="https://github.com/chriz-3656"><i data-lucide="github"></i> chriz3656</a>
-        </div>
-        <div class="footer-col">
-            <h5>Platform</h5>
-            <a href="/dashboard/"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-            <a href="https://github.com/chriz-3656/VarthaBot"><i data-lucide="code"></i> Source</a>
-        </div>
+      <div class="footer-col">
+          <h5>Product</h5>
+          <a href="#features">Features</a>
+          <a href="/dashboard/">Dashboard</a>
+          <a href="#">Changelog</a>
+      </div>
+      <div class="footer-col">
+          <h5>Resources</h5>
+          <a href="#docs">Documentation</a>
+          <a href="#">API Reference</a>
+          <a href="#">Status</a>
+          <a href="#">GitHub</a>
+      </div>
+      <div class="footer-col">
+          <h5>Legal</h5>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Contact Us</a>
       </div>
     </div>
-    <div class="footer-bottom container">
+    <div class="container footer-bottom">
         &copy; 2026 VarthaBot. Managed via Oracle Cloud Infrastructure.
     </div>
   </footer>
 
   <script>
-    // Stats Fetching
-    async function fetchStats() {
-        try {
-            const res = await fetch('/api/status?guildId=GLOBAL');
-            const data = await res.json();
-            if (data.guildCount) {
-                document.getElementById('globalGuildCount').textContent = `Powering ${data.guildCount} Servers`;
-            }
-        } catch(e) {}
-    }
-    fetchStats();
-
-    // Mobile Menu Toggle
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const navLinks = document.getElementById('navLinks');
-    
-    mobileMenuBtn.addEventListener('click', () => {
-        mobileMenuBtn.classList.toggle('active');
-        navLinks.classList.toggle('active');
-        document.body.classList.toggle('no-scroll');
-    });
-
-    // Close menu on link click
-    navLinks.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-            mobileMenuBtn.classList.remove('active');
-            navLinks.classList.remove('active');
-            document.body.classList.remove('no-scroll');
-        });
-    });
-
-    // Initialize Lucide
     lucide.createIcons();
   </script>
 </body>

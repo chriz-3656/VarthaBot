@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard | VarthaBot</title>
-  <link rel="icon" type="image/png" href="https://i.ibb.co/XM44rgy/logo.png">
-  <link rel="stylesheet" href="/dashboard/style.css?v=1.2.0">
+  <title>Dashboard | VarthaBot V2</title>
+  <link rel="icon" type="image/png" href="https://i.ibb.co/0p16YnsL/file-0000000043c8821191fe83b3ff744816.png">
+  <link rel="stylesheet" href="style.css?v=1.2.0">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -13,8 +14,8 @@
 
   <aside class="sidebar">
     <div class="sidebar-header">
-      <img src="https://i.ibb.co/XM44rgy/logo.png" alt="Logo" style="height: 24px;">
-      VarthaBot
+      <img src="https://i.ibb.co/0p16YnsL/file-0000000043c8821191fe83b3ff744816.png" alt="Logo" style="height: 24px;">
+      VarthaBot <span style="font-size:0.6rem; background:var(--orange-primary); color:var(--bg-base); padding:2px 6px; border-radius:4px; font-weight:800; transform:translateY(-2px); margin-left: 4px;">V2</span>
     </div>
     
     <nav class="nav-menu">
@@ -43,10 +44,6 @@
           <span id="userName" class="user-name">Loading...</span>
           <a href="/auth/logout" class="logout-link">Logout</a>
         </div>
-      </div>
-      <a href="/" style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; text-decoration: none; font-weight: 800; display: flex; align-items: center; gap: 4px; margin-top: 8px;">
-        <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Back to Site
-      </a>
     </div>
   </aside>
 
@@ -58,6 +55,9 @@
       <h2 id="pageTitle" style="margin-left: 15px;">Overview</h2>
       <div style="margin-left: auto; display: flex; align-items: center; gap: 15px;">
         <span class="badge" id="globalStatusBadge" style="color: var(--success-color); border-color: var(--success-color);">API Online</span>
+        <a href="/" class="btn-secondary" style="padding: 6px 12px; font-size: 0.7rem;">
+          <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Back to Site
+        </a>
         <a href="https://discord.com/api/oauth2/authorize?client_id=1491712659211419730&permissions=8&scope=bot%20applications.commands" target="_blank" class="btn-primary" style="padding: 6px 12px; font-size: 0.7rem;">
           <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add to Server
         </a>
@@ -194,6 +194,6 @@
 
   </main>
 
-  <script src="/dashboard/app.js?v=1.2.0"></script>
+  <script src="app.js?v=1.2.0"></script>
 </body>
 </html>
