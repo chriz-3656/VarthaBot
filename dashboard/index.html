@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div id="sidebarOverlay" class="sidebar-overlay"></div>
@@ -87,6 +88,11 @@
           </div>
           <div class="card-value" id="systemUptime">--</div>
         </div>
+      </div>
+
+      <div class="heading-subsection" style="margin-top: 16px;"><i data-lucide="bar-chart-2"></i> Fetch & Delivery Analytics</div>
+      <div class="card elevated" style="margin-bottom: 20px;">
+        <canvas id="deliveryChart" height="80"></canvas>
       </div>
 
       <div class="heading-subsection" style="margin-top: 16px;"><i data-lucide="radio"></i> Global Pulse</div>

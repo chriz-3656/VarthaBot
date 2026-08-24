@@ -291,6 +291,23 @@ function createApiRouter(context) {
       res.status(500).json({ ok: false, error: error.message });
     }
   });
+  router.get("/analytics", async (req, res) => {
+    try {
+      const guildId = req.query.guildId || "GLOBAL";
+      const logs = await logger.getRecentAsync ? await logger.getRecentAsync(guildId, 500) : logger.getRecent(500);
+      const fetchLogs = logs.filter(l => l.message === "Fetch cycle completed" && l.meta);
+      const data = fetchLogs.map(l => ({
+        timestamp: l.timestamp,
+        fetched: l.meta.fetched || 0,
+        sent: l.meta.sent || 0,
+        fresh: l.meta.fresh || 0
+      })).reverse();
+      res.json({ ok: true, data });
+    } catch (error) {
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  });
+
 
   router.get('/status', async (req, res) => {
     try {

@@ -217,6 +217,8 @@ async function loadOverview() {
     const status = await request('/status');
     const news = await request('/news');
 
+    loadAnalytics();
+
     el.botStatus.textContent = status.botOnline ? 'Online' : 'Offline';
     el.guildCount.textContent = String(status.guildCount || 0);
     
@@ -500,3 +502,42 @@ async function boot() {
 }
 
 boot();
+
+let chartInstance = null;
+async function loadAnalytics() {
+  try {
+    const res = await request('/analytics');
+    if (!res.data || res.data.length === 0) return;
+    
+    // Group by minute (or hour, depending on frequency)
+    // Let's just plot the last 20 cycles
+    const recent = res.data.slice(-20);
+    const labels = recent.map(r => new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    const fetched = recent.map(r => r.fetched);
+    const delivered = recent.map(r => r.sent);
+    
+    const ctx = document.getElementById('deliveryChart');
+    if (!ctx) return;
+    
+    if (chartInstance) chartInstance.destroy();
+    
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = 'Manrope';
+    
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Fetched Articles', data: fetched, borderColor: '#3f7c8c', backgroundColor: 'rgba(63, 124, 140, 0.2)', fill: true, tension: 0.4 },
+          { label: 'Delivered (Unique)', data: delivered, borderColor: '#FF5A1F', backgroundColor: 'rgba(255, 90, 31, 0.2)', fill: true, tension: 0.4 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { color: 'rgba(255,255,255,0.05)' } } }
+      }
+    });
+  } catch (e) { console.error('Analytics load error:', e); }
+}
