@@ -395,17 +395,41 @@ button, .btn-primary, .btn-secondary, .btn-danger {
   .sidebar {
     position: fixed;
     transform: translateX(-100%);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+    z-index: 1000;
   }
   .sidebar.active {
     transform: translateX(0);
   }
   .mobile-menu-toggle {
     display: block;
+    z-index: 1001;
   }
   .page-container {
-    padding: 20px;
+    padding: 15px;
   }
   .topbar {
-    padding: 15px 20px;
+    padding: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  .topbar h2 {
+    font-size: 1.25rem;
+  }
+  .topbar > div {
+    width: 100%;
+    margin-left: 0 !important;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .btn-primary, .btn-secondary {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
+}
+@media (max-width: 480px) {
+  .dashboard-grid, .grid {
+    grid-template-columns: 1fr !important;
   }
 }
