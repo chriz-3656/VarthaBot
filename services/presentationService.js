@@ -91,26 +91,33 @@ function buildDescription(item, settings) {
 
 function resolveImage(item, settings) {
   if (settings.enableImages === false) {
-    return '';
+    return null;
   }
 
-  if (item.image && /^https?:\/\//i.test(item.image)) {
-    return item.image;
-  }
+  const parseSafeUrl = (str) => {
+    if (!str) return null;
+    const clean = String(str).trim();
+    if (!/^https?:\/\//i.test(clean)) return null;
+    try {
+      return new URL(clean).toString();
+    } catch {
+      return null;
+    }
+  };
+
+  const itemImg = parseSafeUrl(item.image);
+  if (itemImg) return itemImg;
 
   const source = String(item.source || '').toLowerCase();
   const sourceFallbacks = settings.sourceFallbackImages || {};
   for (const [key, url] of Object.entries(sourceFallbacks)) {
-    if (source.includes(String(key).toLowerCase()) && /^https?:\/\//i.test(String(url || ''))) {
-      return String(url);
+    if (source.includes(String(key).toLowerCase())) {
+      const fallbackImg = parseSafeUrl(url);
+      if (fallbackImg) return fallbackImg;
     }
   }
 
-  if (settings.fallbackImageUrl && /^https?:\/\//i.test(settings.fallbackImageUrl)) {
-    return settings.fallbackImageUrl;
-  }
-
-  return '';
+  return parseSafeUrl(settings.fallbackImageUrl);
 }
 
 function buildEmbed(item, rawSettings = {}) {
@@ -127,7 +134,12 @@ function buildEmbed(item, rawSettings = {}) {
     .setTimestamp(new Date(item.pubDate || Date.now()));
 
   if (item.link) {
-    embed.setURL(item.link);
+    try {
+      const cleanLink = new URL(String(item.link).trim()).toString();
+      embed.setURL(cleanLink);
+    } catch {
+      // Ignore invalid link
+    }
   }
 
   if (settings.enableCategoryTags) {
@@ -148,11 +160,20 @@ function buildComponents(item, rawSettings = {}, options = {}) {
     return [];
   }
 
+  let safeLink = 'https://discord.com';
+  if (item.link) {
+    try {
+      safeLink = new URL(String(item.link).trim()).toString();
+    } catch {
+      safeLink = 'https://discord.com';
+    }
+  }
+
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setLabel(`${SYMBOLS.READ} Read News`)
       .setStyle(ButtonStyle.Link)
-      .setURL(item.link || 'https://discord.com')
+      .setURL(safeLink)
   );
 
   if (options.enableInteractive !== false) {
